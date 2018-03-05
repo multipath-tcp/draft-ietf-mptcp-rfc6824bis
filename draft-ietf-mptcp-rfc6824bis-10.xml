@@ -43,7 +43,7 @@
 <?rfc subcompact="no" ?>
 <?rfc rfcedstyle="yes"?>
 
-<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-09" ipr="trust200902" obsoletes="6824">
+<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-10" ipr="trust200902" obsoletes="6824">
   <front>
     <title abbrev="Multipath TCP">TCP Extensions for Multipath Operation with Multiple Addresses</title>
 
