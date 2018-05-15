@@ -30,7 +30,6 @@
   <!ENTITY RFC6528 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.6528.xml">
   <!ENTITY RFC5961 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.5961.xml">
   <!ENTITY RFC6824 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.6824.xml">
-  <!ENTITY RFC6994 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.6994.xml">
   <!ENTITY RFC7413 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.7413.xml">
 ]>
 <?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
@@ -43,7 +42,7 @@
 <?rfc subcompact="no" ?>
 <?rfc rfcedstyle="yes"?>
 
-<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-10" ipr="trust200902" obsoletes="6824">
+<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-11" ipr="trust200902" obsoletes="6824">
   <front>
     <title abbrev="Multipath TCP">TCP Extensions for Multipath Operation with Multiple Addresses</title>
 
@@ -377,7 +376,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
 <t>MPTCP falls back to ordinary TCP if MPTCP operation is not possible, for example, if one host is not MPTCP capable or if a middlebox alters the payload.</t>
 
 
-<t>To meet the threats identified in <xref target="RFC6181"/>, the following steps are taken: keys are sent in the clear in the MP_CAPABLE messages; MP_JOIN messages are secured with HMAC-SHA256 (<xref target="RFC2104"/>, <xref target="SHS"/>) using those keys; and standard TCP validity checks are made on the other messages (ensuring sequence numbers are in-window <xref target="RFC5961"/>).</t>
+<t>To meet the threats identified in <xref target="RFC6181"/>, the following steps are taken: keys are sent in the clear in the MP_CAPABLE messages; MP_JOIN messages are secured with HMAC-SHA256 (<xref target="RFC2104"/>, <xref target="SHS"/>) using those keys; and standard TCP validity checks are made on the other messages (ensuring sequence numbers are in-window <xref target="RFC5961"/>). Further information can be found in <xref target="sec_security"/>.</t>
 </list></t>
 </section>
     </section>
@@ -489,11 +488,12 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
 
         <t>The ACK carries both A's key and B's key. This is the first time that A's key is seen on the wire, although it is expected that A will have generated a key locally before the initial SYN. The echoing of B's key allows B to operate statelessly, as described above. Therefore, A's key must be delivered reliably to B, and in order to do this, the transmission of this packet must be made reliable.</t>
 
+
         <t>If B has data to send first, then the reliable delivery of the ACK can be inferred by the receipt of this data with a MPTCP Data Sequence Signal (DSS) option (<xref target="sec_generalop"/>). If, however, A wishes to send data first, it would not know whether the ACK has successfully been received, and thus whether the MPTCP is successfully established. Therefore, on the first data A has to send (if it has not received any data from B), it MUST also include a MP_CAPABLE option, with additional data parameters (the Data-Level Length and optional Checksum as shown in <xref target="tcpm_capable"/>). This packet may be the third ACK if data is ready to be sent by the application, or may be a later packet if the application only later has data to send. This MP_CAPABLE option is in place of the DSS, and simply specifies the data-level length of the payload, and the checksum (if the use of checksums is negotiated). This is the minimal data required to establish a MPTCP connection - it allows validation of the payload, and given it is the first data, the Initial Data Sequence Number (IDSN) is also known (as it is generated from the key, as described below). Conveying the keys on the first data packet allows the TCP reliability mechanisms to ensure the packet is successfully delivered. The receiver will acknowledge this data a the connection level with a Data ACK, as if a DSS option has been received.</t>
 
         <t>There could be situations where both A and B attempt to transmit initial data at the same time. For example, if A did not initially have data to send, but then needed to transmit data before it had received anything from B, it would use a MP_CAPABLE option with data parameters (since it would not know if the MP_CAPABLE on the ACK was received). In such a situation, B may also have transmitted data with a DSS option, but it had not yet been received at A. Therefore, B has received data with a MP_CAPABLE mapping after it has sent data with a DSS option. To ensure these situations can be handled, it follows that the data parameters in a MP_CAPABLE are semantically equivalent to those in a DSS option and can be used interchangeably. Similar situations could occur when the MP_CAPABLE with data is lost and retransmitted. Furthermore, in the case of TCP Segmentation Offloading, the MP_CAPABLE with data parameters may be duplicated across multiple packets, and implementations must also be able to cope with duplicate MP_CAPABLE mappings as well as duplicate DSS mappings.</t>
 
-        <t>Additionally, the MP_CAPABLE exchange allows the safe passage of MPTCP options on SYN packets to be determined. If any of these options are dropped, MPTCP will gracefully fall back to regular single-path TCP, as documented in <xref target="sec_fallback"/>.  Note that new subflows MUST NOT be established (using the process documented in <xref target="sec_join"/>) until a Data Sequence Signal (DSS) option has been successfully received across the path (as documented in <xref target="sec_generalop"/>).</t>
+        <t>Additionally, the MP_CAPABLE exchange allows the safe passage of MPTCP options on SYN packets to be determined. If any of these options are dropped, MPTCP will gracefully fall back to regular single-path TCP, as documented in <xref target="sec_fallback"/>.  If at any point in the handshake either party thinks the MPTCP negotiation is compromised, for example by a middlebox corrupting the TCP options, or unexpected ACK numbers being present, the host MUST stop using MPTCP and no longer include MPTCP options in future TCP packets. The other host will then also fall back to regular TCP using the fall back mechanism.  Note that new subflows MUST NOT be established (using the process documented in <xref target="sec_join"/>) until a Data Sequence Signal (DSS) option has been successfully received across the path (as documented in <xref target="sec_generalop"/>).</t>
 
         <t>The first 4 bits of the first octet in the MP_CAPABLE option (<xref target="tcpm_capable"/>) define the MPTCP option subtype (see <xref target="IANA"/>; for MP_CAPABLE, this is 0), and the remaining 4 bits of this octet specify the MPTCP version in use (for this specification, this is 1).</t>
        
@@ -1518,72 +1518,6 @@ break the multipath connections, it will just reduce the opportunity to open mul
         </t>
       </section>
 
-      <section title="MPTCP Experimental Option" anchor="sec_experimental">
-        <t>In order to provide a structured identity and negotiation mechanism for private
-        experimental MPTCP extensions, the MP_EXPERIMENTAL option has been reserved.</t>
-
-        <?rfc needLines='8'?>
-        <figure align="center" anchor="tcpm_experimental" title="MPTCP Experimental (MP_EXPERIMENTAL) Option">
-          <artwork align="left"><![CDATA[
-                           1                   2                   3
-       0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-      +---------------+---------------+-------+-------+---------------+
-      |     Kind      |    Length     |Subtype|S|U|rsv|  Experiment   |
-      +---------------+---------------+-------+-------+---------------+
-      | Id. (16 bits) | Subtype-specific data  (variable length)  ...
-      +----------------------------------------------------------- ...
-            ]]></artwork>
-        </figure>
-
-        <t><xref target="tcpm_experimental"/> shows the format of the experimental option.
-        The Experiment identifier is a 16 bits integer that shall be assigned 
-        by using the same procedure as defined in <xref target="RFC6994"/>; a request
-        to IANA is made in <xref target="IANA_experimental"/>.</t>
-
-        <t>The two high order flags that are included in the MPTCP Experimental
-        option have the following semantics:
-          <list style="symbols">
-            <t>"S" flag (highest order bit) : This is the synchronising bit.
-            When set to 1, it indicates that the host sending this option
-            expects a reply from the remote host with an option having the
-            same experiment identifier, but possibly containing other data.</t>
-
-            <t>"U" flag (second highest order bit) : When set to 1, this flag
-            indicates that the experimental option was received by the sending
-            host but it was unable to parse it.</t>
-          </list>
-
-        The two low order flags are currently reserved for further use.  They
-        MUST be set to zero when sending and ignored upon reception.</t>
-
-        <t>To use the Experimental MPTCP option with a given experiment
-        identifier over a MPTCP connection, the sending host must
-        first verify the ability of the remote host to support this
-        particular Experimental option.  For this, it first sends in any
-        valid TCP segment, including a duplicate acknowledgement, an
-        Experimental MPTCP option with the "S" flag set.  Upon
-        reception of this option, the receiving host will verify whether it
-        supports it.  If yes, it shall return a TCP segment that contains the
-        experimental option with the same identifier and the "S" and the "U"
-        flags both set to 1.  This option may contain additional data depending 
-        on the semantics of the extension.  If the receiving host does not 
-        recognise the experimental option that it has received, it shall 
-        return a TCP segment that contains the received experimental option 
-        with the "S" flag set to 0 and the "U" flag set to 1.</t>
-
-        <t>If a host receives an Experimental MPTCP option with the "U" flag set 
-        to 0 which it does not support, or which contains information that the host
-        cannot parse, it shall return the exact option that it received with the "U" 
-        flag set to 1 to indicate the error to the remote host.  If an invalid option is
-        received with the "U" flag set to 0, it must be silently discarded.</t>
-
-        <t>Future documents specifying new experimental MPTCP options should
-        specify the extract semantic of the Subtype-specific data and whether
-        additional validation operations are to be followed at both sides.
-        It should be noted that data can be included in an experimental option 
-        concurrently with the capability check (S/U).</t>
-      </section>
-
       <section title="Fallback" anchor="sec_fallback">
         <t>Sometimes, middleboxes will exist on a path that could prevent the operation of MPTCP. MPTCP has been designed in order to cope with many middlebox modifications (see <xref target="sec_middleboxes"/>), but there are still some cases where a subflow could fail to operate within the MPTCP requirements. These cases are notably the following: the loss of MPTCP options on a path and the modification of payload data. If such an event occurs, it is necessary to "fall back" to the previous, safe operation. This may be either falling back to regular TCP or removing a problematic subflow.</t>
 
@@ -1787,185 +1721,6 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
           regularly fail during use, in order to temporarily choose not to use 
           these paths.</t>
         </section>
-      </section>
-
-      <section title="TCP Fast Open" anchor="tfo">
-        <t>TCP Fast Open, described in <xref target="RFC7413"/>, has been introduced with the
-        objective of gaining one RTT before transmitting data.  This is
-        considered a valuable gain as very short connections are very common,
-        especially for HTTP request/response schemes. It achieves this by sending
-	the SYN-segment together with data and allowing the server to reply
-	immediately with data after the SYN/ACK. <xref target="RFC7413"/> secures
-	this mechanism, by using a new TCP option that includes a cookie which
-	is negotiated in a preceding connection.</t>
-
-	<t>When using TCP Fast Open in conjunction with MPTCP, there are two key
-	points to take into account, detailed hereafter.</t>
-
-	<section title="TFO cookie request with MPTCP" anchor="tfocookie">
-	  <t>When a TFO client first connects to a server, it cannot immediately
-	  include data in the SYN for security reasons <xref target="RFC7413"/>.
-	  Instead, it requests a cookie that will be used in subsequent
-	  connections. This is done with the TCP cookie request/response options,
-	  of resp. 2 bytes and 6-18 bytes (depending on the chosen cookie length).</t>
-
-	  <t>TFO and MPTCP can be combined provided that the total length of their
-	  options does not exceed the maximum 40 bytes possible in TCP:
-
-	  <list style="symbols">
-	  <t>In the SYN: MPTCP uses a 4-bytes long MP_CAPABLE option. The MPTCP
-	  and TFO options sum up to 6 bytes. With typical TCP-options using up
-	  to 19 bytes in the SYN (24 bytes if options are padded at a word boundary),
-	  there is enough space to combine the MP_CAPABLE with the TFO Cookie Request.</t>
-
-	  <t>In the SYN+ACK: MPTCP uses a 12-bytes long MP_CAPABLE option, but
-	  now TFO can be as long as 18 bytes. Since the maximum option length
-	  may be exceeded, it is up to the server to solve this by using a
-	  shorter cookie.
-	  As an example, if we consider that 19 bytes are used for classical
-	  TCP options, the maximum possible cookie length would be
-	  of 7 bytes. Note that the same limitation applies to subsequent
-	  connections, for the SYN packet (because the client then echoes back
-	  the cookie to the server). Finally, if the security impact of reducing
-	  the cookie size is not deemed acceptable, the server can reduce the
-	  amount of other TCP-options by omitting the TCP timestamps (as
-	  outlined in <xref target="app_options"/>).</t>
-	  </list></t>
-	</section>
-
-	<section title="Data sequence mapping under TFO" anchor="tfodata">
-	  <t>MPTCP uses, in the TCP establishment phase, a key exchange that is
-	  used to generate the Initial Data Sequence Numbers (IDSNs). In particular,
-	  the SYN with MP_CAPABLE occupies the first octet of the data sequence
-	  space. With TFO, one way to handle the data sent together with the SYN
-	  would be to consider an implicit DSS mapping that covers that SYN segment
-	  (since there is not enough space in the SYN to include a DSS option).
-	  The problem with that approach is that if a middlebox modifies the TFO
-	  data, this will not be noticed by MPTCP because of the absence of a
-	  DSS-checksum. For example, a TCP (but not MPTCP)-aware middlebox could
-	  insert bytes at the beginning of the stream and adapt the TCP checksum
-	  and sequence numbers accordingly. With an implicit mapping, this would
-	  give to client and server a different view on the DSS-mapping, with no
-	  way to detect this inconsistency as the DSS checksum is not present.</t>
-
-	  <t>To solve this, the TFO data should not be considered part of the
-	  Data Sequence Number space: the SYN with MP_CAPABLE still occupies
-	  the first octet of data sequence space, but then the first non-TFO
-	  data byte occupies the second octet. This guarantees that, if the
-	  use of DSS-checksum is negotiated, all data in the data sequence
-	  number space is checksummed. We also note that this does not entail
-	  a loss of functionality, because TFO-data is always sent when only
-	  one path is active.</t>
-	</section>
-
-	<section title="Connection establishment examples" anchor="tfoexamples">
-          <t>The following shows a few examples of possible TFO+MPTCP
-          establishment scenarios.</t>
-
-          <t>Before a client can send data together with the SYN, it must request
-          a cookie to the server, as shown in Figure <xref target="fig_tfocookie"/>.
-	  This is done by simply combining the TFO and MPTCP options.</t>
-
-          <figure align="center" anchor="fig_tfocookie" title="Cookie request">
-          <artwork align="left"><![CDATA[
-   client                                                         server
-     |                                                              |
-     |    S 0(0) <MP_CAPABLE>, <TFO cookie request>                 |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    S. 0(0) ack 1 <MP_CAPABLE>, <TFO cookie>                  |
-     | <----------------------------------------------------------- |
-     |                                                              |
-     |    .  0(0) ack 1 <MP_CAPABLE>                                |
-     | -----------------------------------------------------------> |
-     |                                                              |
-           ]]></artwork>
-	  </figure>
-
-          <t>Once this is done, the received cookie can be used for TFO, as shown
-          in Figure <xref target="fig_tfodata"/>. In this example, the client first
-	  sends 20 bytes in the SYN. The server immediately replies with 100 bytes
-	  following the SYN-ACK upon which the client replies with 20 more bytes.
-	  Note that the last segment in the figure
-          has a TCP sequence number of 21, while the DSS subflow sequence
-          number is 1 (because the TFO data is not part of the data sequence
-          number space, as explained in Section <xref target="tfodata"/>.</t>
-
-	  <figure align="center" anchor="fig_tfodata" title="The server supports TFO">
-          <artwork align="left"><![CDATA[
-   client                                                         server
-     |                                                              |
-     |    S  0(20) <MP_CAPABLE>, <TFO cookie>                       |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    S. 0(0) ack 21 <MP_CAPABLE>                               |
-     | <----------------------------------------------------------- |
-     |                                                              |
-     |    .  1(100) ack 21 <DSS ack=1 seq=1 ssn=1 dlen=100>         |
-     | <----------------------------------------------------------- |
-     |                                                              |
-     |    .  21(0) ack 1 <MP_CAPABLE>                               |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    .  21(20) ack 101 <DSS ack=101 seq=1 ssn=1 dlen=20>       |
-     | -----------------------------------------------------------> |
-     |                                                              |
-           ]]></artwork>
-	  </figure>
-
-          <t>In Figure <xref target="fig_tfofallback"/>, the server does not support TFO.  The client detects
-          that no state is created in the server (as no data is acked), and now
-          sends the MP_CAPABLE in the third ack, in order for the server to
-          build its MPTCP context at then end of the establishment.  Now, the
-          tfo data, retransmitted, becomes part of the data sequence mapping
-          because it is effectively sent (in fact re-sent) after the
-          establishment.</t>
-
-	  <figure align="center" anchor="fig_tfofallback" title="The server does not support TFO">
-          <artwork align="left"><![CDATA[
-   client                                                         server
-     |                                                              |
-     |    S  0(20) <MP_CAPABLE>, <TFO cookie>                       |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    S. 0(0) ack 1 <MP_CAPABLE>                                |
-     | <----------------------------------------------------------- |
-     |                                                              |
-     |    .  1(0) ack 1 <MP_CAPABLE>                                |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    .  1(20) ack 1 <DSS ack=1 seq=1 ssn=1 dlen=20>            |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    .  0(0) ack 21 <DSS ack=21 seq=1 ssn=1 dlen=0>            |
-     | <----------------------------------------------------------- |
-     |                                                              |
-           ]]></artwork>
-	  </figure>
-
-          <t>It is also possible that the server acknowledges only part of the TFO
-          data, as illustrated in Figure <xref target="fig_tfopartial"/>. The
-	  client will simply retransmit the missing data together with a DSS-mapping.</t>
-
-	  <figure align="center" anchor="fig_tfopartial" title="Partial data acknowledgement">
-          <artwork align="left"><![CDATA[
-   client                                                         server
-     |                                                              |
-     |  S  0(1000) <MP_CAPABLE>, <TFO cookie>                       |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |  S. 0(0) ack 501 <MP_CAPABLE>                                |
-     | <----------------------------------------------------------- |
-     |                                                              |
-     |    .  501(0) ack 1 <MP_CAPABLE>                              |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |   .  501(500) ack 1 <DSS ack=1 seq=1 ssn=1 dlen=500>         |
-     | -----------------------------------------------------------> |
-     |                                                              |
-           ]]></artwork>
-	  </figure>
-	</section>
       </section>
     </section>
 
@@ -2263,12 +2018,12 @@ subflow-specific windows.</t>
 
         <c>0xf</c>
         <c>MP_EXPERIMENTAL</c>
-        <c>MPTCP Experimental Option</c>
-        <c>This document, <xref target="sec_experimental"/></c>
+        <c>Reserved for private experiments</c>
+        <c></c>
         
       </texttable>
 
-      <t>Values 0x9 through 0xe are currently unassigned.</t>
+      <t>Values 0x9 through 0xe are currently unassigned. Option 0xf is reserved for use by private experiments. Its use may be formalized in a future specification.</t>
       </section>
 
       <section anchor="IANA_handshake" title="MPTCP Handshake Algorithms">
@@ -2348,16 +2103,6 @@ subflow-specific windows.</t>
       </texttable>
       </section>
 
-      <section anchor="IANA_experimental" title="Experimental option registry">
-        <t><xref target="sec_experimental"/> has defined the MP_EXPERIMENTAL option for private, experimental MPTCP options, and the same considerations as for <xref target="RFC6994"/> apply.  IANA should create a "Multipath TCP Experimental Option Identifiers (MPTCP ExIDs)" sub-registry.  This registry contains the 16 bits ExIDs and a reference (description, document pointer, or assignee name and e-mail contact) for each entry.  MPTCP ExIDs are assigned on a First Come, First Served (FCFS) basis <xref target="RFC5226"/>.</t>
-
-       <t>IANA will advise applicants of duplicate entries to select an alternate value, as per typical FCFS processing.</t>
-
-       <t>IANA will record known duplicate uses to assist the community in both debugging assigned uses as well as correcting unauthorized duplicate uses.</t>
-
-       <t>IANA should impose no requirement on making a registration other than indicating the desired codepoint and providing a point of contact.  A short description or acronym for the use is desired but should not be required.</t>
-      </section>
-
     </section>
   </middle>
 
@@ -2396,7 +2141,6 @@ subflow-specific windows.</t>
       &RFC5961;
       &RFC6528;
       &RFC6824;
-      &RFC6994;
       &RFC7413;
 
 
@@ -2477,6 +2221,186 @@ are not reliably sent. This is not an issue for DATA_ACK due to their
 cumulative nature, but may be an issue for ADD_ADDR/REMOVE_ADDR options. Here, it is recommended 
 to send these options redundantly (whether on multiple paths or on the same path on a number
 of ACKs -- but interspersed with data in order to avoid interpretation as congestion). The cases where options are stripped by middleboxes are discussed in <xref target="sec_middleboxes"/>.</t>
+    </section>
+
+    <section title="TCP Fast Open" anchor="tfo">
+      <t>TCP Fast Open (TFO) is an experimental TCP extension, described in
+      <xref target="RFC7413"/>, which has been introduced with the
+      objective of gaining one RTT before transmitting data.  This is
+      considered a valuable gain as very short connections are very common,
+      especially for HTTP request/response schemes. It achieves this by sending
+      the SYN-segment together with data and allowing the server to reply
+      immediately with data after the SYN/ACK. <xref target="RFC7413"/> secures
+      this mechanism, by using a new TCP option that includes a cookie which
+      is negotiated in a preceding connection.</t>
+
+	<t>When using TCP Fast Open in conjunction with MPTCP, there are two key
+	points to take into account, detailed hereafter.</t>
+
+	<section title="TFO cookie request with MPTCP" anchor="tfocookie">
+	  <t>When a TFO client first connects to a server, it cannot immediately
+	  include data in the SYN for security reasons <xref target="RFC7413"/>.
+	  Instead, it requests a cookie that will be used in subsequent
+	  connections. This is done with the TCP cookie request/response options,
+	  of resp. 2 bytes and 6-18 bytes (depending on the chosen cookie length).</t>
+
+	  <t>TFO and MPTCP can be combined provided that the total length of their
+	  options does not exceed the maximum 40 bytes possible in TCP:
+
+	  <list style="symbols">
+	  <t>In the SYN: MPTCP uses a 4-bytes long MP_CAPABLE option. The MPTCP
+	  and TFO options sum up to 6 bytes. With typical TCP-options using up
+	  to 19 bytes in the SYN (24 bytes if options are padded at a word boundary),
+	  there is enough space to combine the MP_CAPABLE with the TFO Cookie Request.</t>
+
+	  <t>In the SYN+ACK: MPTCP uses a 12-bytes long MP_CAPABLE option, but
+	  now TFO can be as long as 18 bytes. Since the maximum option length
+	  may be exceeded, it is up to the server to solve this by using a
+	  shorter cookie.
+	  As an example, if we consider that 19 bytes are used for classical
+	  TCP options, the maximum possible cookie length would be
+	  of 7 bytes. Note that the same limitation applies to subsequent
+	  connections, for the SYN packet (because the client then echoes back
+	  the cookie to the server). Finally, if the security impact of reducing
+	  the cookie size is not deemed acceptable, the server can reduce the
+	  amount of other TCP-options by omitting the TCP timestamps (as
+	  outlined in <xref target="app_options"/>).</t>
+	  </list></t>
+	</section>
+
+	<section title="Data sequence mapping under TFO" anchor="tfodata">
+	  <t>MPTCP uses, in the TCP establishment phase, a key exchange that is
+	  used to generate the Initial Data Sequence Numbers (IDSNs). In particular,
+	  the SYN with MP_CAPABLE occupies the first octet of the data sequence
+	  space. With TFO, one way to handle the data sent together with the SYN
+	  would be to consider an implicit DSS mapping that covers that SYN segment
+	  (since there is not enough space in the SYN to include a DSS option).
+	  The problem with that approach is that if a middlebox modifies the TFO
+	  data, this will not be noticed by MPTCP because of the absence of a
+	  DSS-checksum. For example, a TCP (but not MPTCP)-aware middlebox could
+	  insert bytes at the beginning of the stream and adapt the TCP checksum
+	  and sequence numbers accordingly. With an implicit mapping, this would
+	  give to client and server a different view on the DSS-mapping, with no
+	  way to detect this inconsistency as the DSS checksum is not present.</t>
+
+	  <t>To solve this, the TFO data should not be considered part of the
+	  Data Sequence Number space: the SYN with MP_CAPABLE still occupies
+	  the first octet of data sequence space, but then the first non-TFO
+	  data byte occupies the second octet. This guarantees that, if the
+	  use of DSS-checksum is negotiated, all data in the data sequence
+	  number space is checksummed. We also note that this does not entail
+	  a loss of functionality, because TFO-data is always sent when only
+	  one path is active.</t>
+	</section>
+
+	<section title="Connection establishment examples" anchor="tfoexamples">
+          <t>The following shows a few examples of possible TFO+MPTCP
+          establishment scenarios.</t>
+
+          <t>Before a client can send data together with the SYN, it must request
+          a cookie to the server, as shown in Figure <xref target="fig_tfocookie"/>.
+	  This is done by simply combining the TFO and MPTCP options.</t>
+
+          <figure align="center" anchor="fig_tfocookie" title="Cookie request">
+          <artwork align="left"><![CDATA[
+   client                                                         server
+     |                                                              |
+     |    S 0(0) <MP_CAPABLE>, <TFO cookie request>                 |
+     | -----------------------------------------------------------> |
+     |                                                              |
+     |    S. 0(0) ack 1 <MP_CAPABLE>, <TFO cookie>                  |
+     | <----------------------------------------------------------- |
+     |                                                              |
+     |    .  0(0) ack 1 <MP_CAPABLE>                                |
+     | -----------------------------------------------------------> |
+     |                                                              |
+           ]]></artwork>
+	  </figure>
+
+          <t>Once this is done, the received cookie can be used for TFO, as shown
+          in Figure <xref target="fig_tfodata"/>. In this example, the client first
+	  sends 20 bytes in the SYN. The server immediately replies with 100 bytes
+	  following the SYN-ACK upon which the client replies with 20 more bytes.
+	  Note that the last segment in the figure
+          has a TCP sequence number of 21, while the DSS subflow sequence
+          number is 1 (because the TFO data is not part of the data sequence
+          number space, as explained in Section <xref target="tfodata"/>.</t>
+
+	  <figure align="center" anchor="fig_tfodata" title="The server supports TFO">
+          <artwork align="left"><![CDATA[
+   client                                                         server
+     |                                                              |
+     |    S  0(20) <MP_CAPABLE>, <TFO cookie>                       |
+     | -----------------------------------------------------------> |
+     |                                                              |
+     |    S. 0(0) ack 21 <MP_CAPABLE>                               |
+     | <----------------------------------------------------------- |
+     |                                                              |
+     |    .  1(100) ack 21 <DSS ack=1 seq=1 ssn=1 dlen=100>         |
+     | <----------------------------------------------------------- |
+     |                                                              |
+     |    .  21(0) ack 1 <MP_CAPABLE>                               |
+     | -----------------------------------------------------------> |
+     |                                                              |
+     |    .  21(20) ack 101 <DSS ack=101 seq=1 ssn=1 dlen=20>       |
+     | -----------------------------------------------------------> |
+     |                                                              |
+           ]]></artwork>
+	  </figure>
+
+          <t>In Figure <xref target="fig_tfofallback"/>, the server does not support TFO.  The client detects
+          that no state is created in the server (as no data is acked), and now
+          sends the MP_CAPABLE in the third ack, in order for the server to
+          build its MPTCP context at then end of the establishment.  Now, the
+          tfo data, retransmitted, becomes part of the data sequence mapping
+          because it is effectively sent (in fact re-sent) after the
+          establishment.</t>
+
+	  <figure align="center" anchor="fig_tfofallback" title="The server does not support TFO">
+          <artwork align="left"><![CDATA[
+   client                                                         server
+     |                                                              |
+     |    S  0(20) <MP_CAPABLE>, <TFO cookie>                       |
+     | -----------------------------------------------------------> |
+     |                                                              |
+     |    S. 0(0) ack 1 <MP_CAPABLE>                                |
+     | <----------------------------------------------------------- |
+     |                                                              |
+     |    .  1(0) ack 1 <MP_CAPABLE>                                |
+     | -----------------------------------------------------------> |
+     |                                                              |
+     |    .  1(20) ack 1 <DSS ack=1 seq=1 ssn=1 dlen=20>            |
+     | -----------------------------------------------------------> |
+     |                                                              |
+     |    .  0(0) ack 21 <DSS ack=21 seq=1 ssn=1 dlen=0>            |
+     | <----------------------------------------------------------- |
+     |                                                              |
+           ]]></artwork>
+	  </figure>
+
+          <t>It is also possible that the server acknowledges only part of the TFO
+          data, as illustrated in Figure <xref target="fig_tfopartial"/>. The
+	  client will simply retransmit the missing data together with a DSS-mapping.</t>
+
+	  <figure align="center" anchor="fig_tfopartial" title="Partial data acknowledgement">
+          <artwork align="left"><![CDATA[
+   client                                                         server
+     |                                                              |
+     |  S  0(1000) <MP_CAPABLE>, <TFO cookie>                       |
+     | -----------------------------------------------------------> |
+     |                                                              |
+     |  S. 0(0) ack 501 <MP_CAPABLE>                                |
+     | <----------------------------------------------------------- |
+     |                                                              |
+     |    .  501(0) ack 1 <MP_CAPABLE>                              |
+     | -----------------------------------------------------------> |
+     |                                                              |
+     |   .  501(500) ack 1 <DSS ack=1 seq=1 ssn=1 dlen=500>         |
+     | -----------------------------------------------------------> |
+     |                                                              |
+           ]]></artwork>
+	  </figure>
+     </section>
     </section>
 
     <section title="Control Blocks" anchor="app_tcb">
