@@ -302,15 +302,22 @@ Additional subflows begin in the same way as initiating a normal TCP connection,
 <section title="Informing the Other Host about Another Potential Address">
 <t>The set of IP addresses associated to a multihomed host may change during the lifetime of an MPTCP connection. MPTCP supports the addition and removal of addresses on a host both implicitly and explicitly. If Host A has established a subflow starting at address/port pair IP#-A1 and wants to open a second subflow starting at address/port pair IP#-A2, it simply initiates the establishment of the subflow as explained above. The remote host will then be implicitly informed about the new address.</t>
 
-<t>In some circumstances, a host may want to advertise to the remote host the availability of an address without establishing a new subflow, for example, when a NAT prevents setup in one direction.  In the example below, Host A informs Host B about its alternative IP address/port pair (IP#-A2). Host B may later send an MP_JOIN to this new address. This option contains a HMAC to authenticate the address as having been sent from the originator of the connection. Further details are in <xref target="sec_add_address"/>.</t>
+<t>In some circumstances, a host may want to advertise to the remote host the availability of an address without establishing a new subflow, for example, when a NAT prevents setup in one direction.  In the example below, Host A informs Host B about its alternative IP address/port pair (IP#-A2). Host B may later send an MP_JOIN to this new address. This option contains a HMAC to authenticate the address as having been sent from the originator of the connection. The receiver of this option echoes it back to the client to indicate successful reception. Further details are in <xref target="sec_add_address"/>.</t>
 
 <figure><artwork align="left"><![CDATA[
    Host A                                 Host B
    ------                                 ------
    ADD_ADDR                  ->
-   [IP#-A2, 
+   [Echo-flag=0,
+    IP#-A2,
     IP#-A2's Address ID,
     HMAC of IP#-A2]
+
+                             <-          ADD_ADDR
+                                         [Echo-flag=1,
+                                          IP#-A2,
+                                          IP#-A2's Address ID,
+                                          HMAC of IP#-A2]
 ]]></artwork></figure>
 
 <t>There is a corresponding signal for address removal, making use of the Address ID that is signaled in the add address handshake. Further details in <xref target="sec_remove_addr"/>.</t>
@@ -495,7 +502,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
 
         <t>Additionally, the MP_CAPABLE exchange allows the safe passage of MPTCP options on SYN packets to be determined. If any of these options are dropped, MPTCP will gracefully fall back to regular single-path TCP, as documented in <xref target="sec_fallback"/>.  If at any point in the handshake either party thinks the MPTCP negotiation is compromised, for example by a middlebox corrupting the TCP options, or unexpected ACK numbers being present, the host MUST stop using MPTCP and no longer include MPTCP options in future TCP packets. The other host will then also fall back to regular TCP using the fall back mechanism.  Note that new subflows MUST NOT be established (using the process documented in <xref target="sec_join"/>) until a Data Sequence Signal (DSS) option has been successfully received across the path (as documented in <xref target="sec_generalop"/>).</t>
 
-        <t>The first 4 bits of the first octet in the MP_CAPABLE option (<xref target="tcpm_capable"/>) define the MPTCP option subtype (see <xref target="IANA"/>; for MP_CAPABLE, this is 0), and the remaining 4 bits of this octet specify the MPTCP version in use (for this specification, this is 1).</t>
+        <t>Like all MPTCP options, the MP_CAPABLE option starts with the Kind and Length to specify the TCP-option kind and its length. Followed by that is the MP_CAPABLE option. The first 4 bits of the first octet in the MP_CAPABLE option (<xref target="tcpm_capable"/>) define the MPTCP option subtype (see <xref target="IANA"/>; for MP_CAPABLE, this is 0x0), and the remaining 4 bits of this octet specify the MPTCP version in use (for this specification, this is 1).</t>
        
         <t>The second octet is reserved for flags, allocated as follows:
 
@@ -1289,10 +1296,10 @@ allocating such IDs is implementation specific.</t>
         validate the HMAC, it SHOULD silently ignore the option.</t>
 
         <t>A set of four flags are present after the subtype and before the Address ID. Only the rightmost 
-        bit - labelled 'E' - is assinged today. The other bits are currently unassigned and MUST be set to 
+        bit - labelled 'E' - is assigned today. The other bits are currently unassigned and MUST be set to 
         zero by a sender and MUST be ignored by the receiver.</t>
 
-        <t>The 'E' bit exists to provide reliability for this option. Because this option will often be sent
+        <t>The 'E' flag exists to provide reliability for this option. Because this option will often be sent
         on pure ACKs, there is no guarantee of reliability. Therefore, a receiver receiving a fresh ADD_ADDR
         option (where E=0), will send the same option back to the sender, but not including the HMAC, and 
         with E=1. The lack of this echo can be used by the initial ADD_ADDR sender to retransmit the ADD_ADDR
