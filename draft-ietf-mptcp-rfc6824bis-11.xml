@@ -1436,7 +1436,7 @@ break the multipath connections, it will just reduce the opportunity to open mul
 	<t>If however host A decides to force the closure by using Option R and
 	sending a RST with the MP_FASTCLOSE option, Host B will act as follows:
 	Upon receipt of a RST with MP_FASTCLOSE, containing the valid key,
-	Host B tears down all subflows. Host B can now close the whole MPTCP
+	Host B tears down all subflows by sending a TCP RST. Host B can now close the whole MPTCP
 	connection (it transitions directly to CLOSED state).</t>
       </section>
 
@@ -2048,7 +2048,7 @@ subflow-specific windows.</t>
         <c>This document, <xref target="sec_init"/></c>
 
         <c>C</c>
-        <c>Don't reuse source address for new subflows.</c>
+        <c>Do not attempt to establish new subflows to the source address.</c>
         <c>This document, <xref target="sec_init"/></c>
 
         <c>D-G</c>
