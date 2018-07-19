@@ -263,7 +263,7 @@ handshake. The MPTCP connection is terminated by a connection-level FIN.</t>
 
 <t>All MPTCP operations are signaled with a TCP option -- a single numerical type for MPTCP, with "sub-types" for each MPTCP message. What follows is a summary of the purpose and rationale of these messages.</t>
 <section title="Initiating an MPTCP Connection">
-<t>This is the same signaling as for initiating a normal TCP connection, but the SYN, SYN/ACK, and initial ACK packets also carry the MP_CAPABLE option. This option is variable length and serves multiple purposes. Firstly, it verifies whether the remote host supports Multipath TCP; secondly, this option allows the hosts to exchange some information to authenticate the establishment of additional subflows. Further details are given in <xref target="sec_init"/>.</t>
+<t>This is the same signaling as for initiating a normal TCP connection, but the SYN, SYN/ACK, and initial ACK (and data) packets also carry the MP_CAPABLE option. This option is variable length and serves multiple purposes. Firstly, it verifies whether the remote host supports Multipath TCP; secondly, this option allows the hosts to exchange some information to authenticate the establishment of additional subflows. Further details are given in <xref target="sec_init"/>.</t>
 
 <figure><artwork align="left"><![CDATA[
    Host A                                  Host B
@@ -420,21 +420,23 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
         so on this particular connection.</t>
 
         <t>The MP_CAPABLE exchange in this specification (v1) is different to
-        that specified in v0 <xref target="RFC6824"/>. 
-        If a host supports multiple versions of MPTCP, the sender of the
-        MP_CAPABLE option SHOULD signal the highest version number it supports.
-        The passive opener, on receipt of this, will signal the version number
-        it wishes to use, which MUST be equal to or lower than the version 
-        number indicated in the initial MP_CAPABLE. 
-        Given the SYN exchange is different between v1 and v0 the exchange cannot
-        be immediately downgraded, and therefore if the far end has requested a 
-        lower version then the initiator SHOULD respond with an ACK without any
-        MP_CAPABLE option, to fall back to regular TCP. If the initiator supports
-        the requsted version, on future connections to the target host, the initiator 
-        MAY cache the version preference. Alternatively, the initiator MAY close 
-        the connection with a TCP RST and immediately re-establish with the requested
-        version of MPTCP.</t>
-        
+        that specified in v0 <xref target="RFC6824"/>.  If a host supports multiple versions
+        of MPTCP, the sender of the MP_CAPABLE option SHOULD signal the
+        highest version number it supports.  The passive opener, on receipt
+        of this, will signal the version number it wishes to use, which MUST
+        be equal to or lower than the version number indicated in the initial
+        MP_CAPABLE.
+        There is a caveat though with respect to this version negotiation with
+        old listeners that only support v0. A listener that supports v0 expects that
+        the MP_CAPABLE option in the SYN-segment includes the initiator's key. If
+	the initiator however already upgraded to v1, it won't include the key in the
+        SYN-segment. Thus, the listener will ignore the MP_CAPABLE of this
+        SYN-segment and reply with a SYN/ACK that does not include an MP_CAPABLE,
+	thus leading to a fallback to regular TCP.
+	An initiator MAY cache this information about a peer and for future
+	connections, MAY choose to attempt using MPTCP v0, if supported, before
+	recording the host as not supporting MPTCP.</t>
+
         <t>The MP_CAPABLE option is variable-length, with different fields
         included depending on which packet the option is used on. The full 
         MP_CAPABLE option is shown in <xref target="tcpm_capable"/>.</t>
@@ -473,7 +475,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
         to define the version of MPTCP being requested, as well as exchanging
         flags to negotiate connection features, described later.</t>
         
-        <t>This option is used to declare the 64-bit keys that the end hosts have generated for this MPTCP connection. This key is used to authenticate the addition of future subflows to this connection. This is the only time the key will be sent in clear on the wire (unless "fast close", <xref target="sec_fastclose"/>, is used); all future subflows will identify the connection using a 32-bit "token". This token is a cryptographic hash of this key. The algorithm for this process is dependent on the authentication algorithm selected; the method of selection is defined later in this section.</t>
+        <t>This option is used to declare the 64-bit keys that the end hosts have generated for this MPTCP connection. These keys are used to authenticate the addition of future subflows to this connection. This is the only time the key will be sent in clear on the wire (unless "fast close", <xref target="sec_fastclose"/>, is used); all future subflows will identify the connection using a 32-bit "token". This token is a cryptographic hash of this key. The algorithm for this process is dependent on the authentication algorithm selected; the method of selection is defined later in this section.</t>
         
         <t>Upon reception of the initial SYN-segment, a stateful server generates a random key and replies with a SYN/ACK. The key's method of generation is implementation specific. The key MUST be hard to guess, and it MUST be unique for the sending host at any one time. Recommendations for generating random numbers for use in keys are given in <xref target="RFC4086"/>. Connections will be indexed at each host by the token (a one-way hash of the key). Therefore, an implementation will require a mapping from each token to the corresponding connection, and in turn to the keys for the connection.</t>
 
@@ -508,7 +510,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
 
         <list style="hanging">
           <t hangText="A:"> The leftmost bit, labeled "A", SHOULD be set to 1 to indicate "Checksum Required", unless the system administrator has decided that checksums are not required (for example, if the environment is controlled and no middleboxes exist that might adjust the payload).</t>
-          <t hangText="B:"> The second bit, labeled "B", is an extensibility flag, and MUST be set to 0 for current implementations. This will be used for an extensibility mechanism in a future specification, and the impact of this flag will be defined at a later date. If receiving a message with the 'B' flag set to 1, and this is not understood, then this SYN MUST be silently ignored; the sender is expected to retry with a format compatible with this legacy specification. Note that the length of the MP_CAPABLE option, and the meanings of bits "C" through "H", may be altered by setting B=1.</t>
+          <t hangText="B:"> The second bit, labeled "B", is an extensibility flag, and MUST be set to 0 for current implementations. This will be used for an extensibility mechanism in a future specification, and the impact of this flag will be defined at a later date. If receiving a message with the 'B' flag set to 1, and this is not understood, then the MP_CAPABLE in this SYN MUST be silently ignored, which triggers a fallback to regular TCP; the sender is expected to retry with a format compatible with this legacy specification. Note that the length of the MP_CAPABLE option, and the meanings of bits "C" through "H", may be altered by setting B=1.</t>
           <t hangText="C:"> The third bit, labeled "C", is set to "1" to indicate that the sender of this option will not accept additional MPTCP subflows to the source address and port, and therefore the receiver MUST NOT try to open any additional subflows towards this address and port. This is an efficiency improvement for situations where the sender knows a restriction is in place, for example if the sender is behind a strict NAT, or operating behind a legacy Layer 4 load balancer.</t>
           <t hangText="D through H:"> The remaining bits, labeled "D" through "H", are used for crypto algorithm negotiation.  Currently only the rightmost bit, labeled "H", is assigned.  Bit "H" indicates the use of HMAC-SHA256 (as defined in <xref target="sec_join"/>).  An implementation that only supports this method MUST set bit "H" to 1, and bits "D" through "G" to 0.</t>
         </list>
@@ -1674,10 +1676,9 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
           above issue, and also provide resilience for low-bandwidth but long-lived
           applications.</t>
 
-          <t>If the two communicating hosts immediately try to set up subflows from
-          all available addresses to all available addresses on the other host, this
-          could end up creating two subflows per path. This is an inefficient use of
-          resources.</t>
+          <t>Another issue is that both communicating hosts may simultaneously try to
+	  set up a subflow between the same pair of addresses. This leads to an
+	  inefficient use of resources.</t>
 
           <t>If the the same ports are used on all subflows, as recommended above, 
           then standard TCP simultaneous open logic should take care of this situation 
@@ -2234,7 +2235,7 @@ of ACKs -- but interspersed with data in order to avoid interpretation as conges
       one RTT earlier than with regular TCP. This is
       considered a valuable gain as very short connections are very common,
       especially for HTTP request/response schemes. It achieves this by sending
-      the SYN-segment together with the application's data and allowing the server to reply
+      the SYN-segment together with the application's data and allowing the listener to reply
       immediately with data after the SYN/ACK. <xref target="RFC7413"/> secures
       this mechanism, by using a new TCP option that includes a cookie which
       is negotiated in a preceding connection.</t>
@@ -2243,7 +2244,7 @@ of ACKs -- but interspersed with data in order to avoid interpretation as conges
 	points to take into account, detailed hereafter.</t>
 
 	<section title="TFO cookie request with MPTCP" anchor="tfocookie">
-	  <t>When a TFO client first connects to a server, it cannot immediately
+	  <t>When a TFO initiator first connects to a listener, it cannot immediately
 	  include data in the SYN for security reasons <xref target="RFC7413"/>.
 	  Instead, it requests a cookie that will be used in subsequent
 	  connections. This is done with the TCP cookie request/response options,
@@ -2260,14 +2261,14 @@ of ACKs -- but interspersed with data in order to avoid interpretation as conges
 
 	  <t>In the SYN+ACK: MPTCP uses a 12-bytes long MP_CAPABLE option, but
 	  now TFO can be as long as 18 bytes. Since the maximum option length
-	  may be exceeded, it is up to the server to solve this by using a
+	  may be exceeded, it is up to the listener to solve this by using a
 	  shorter cookie.
 	  As an example, if we consider that 19 bytes are used for classical
 	  TCP options, the maximum possible cookie length would be
 	  of 7 bytes. Note that the same limitation applies to subsequent
-	  connections, for the SYN packet (because the client then echoes back
-	  the cookie to the server). Finally, if the security impact of reducing
-	  the cookie size is not deemed acceptable, the server can reduce the
+	  connections, for the SYN packet (because the initiator then echoes back
+	  the cookie to the listener). Finally, if the security impact of reducing
+	  the cookie size is not deemed acceptable, the listener can reduce the
 	  amount of other TCP-options by omitting the TCP timestamps (as
 	  outlined in <xref target="app_options"/>).</t>
 	  </list></t>
@@ -2285,7 +2286,7 @@ of ACKs -- but interspersed with data in order to avoid interpretation as conges
 	  DSS-checksum. For example, a TCP (but not MPTCP)-aware middlebox could
 	  insert bytes at the beginning of the stream and adapt the TCP checksum
 	  and sequence numbers accordingly. With an implicit mapping, this would
-	  give to client and server a different view on the DSS-mapping, with no
+	  give to initiator and listener a different view on the DSS-mapping, with no
 	  way to detect this inconsistency as the DSS checksum is not present.</t>
 
 	  <t>To solve this, the TFO data must not be considered part of the
@@ -2302,107 +2303,107 @@ of ACKs -- but interspersed with data in order to avoid interpretation as conges
           <t>The following shows a few examples of possible TFO+MPTCP
           establishment scenarios.</t>
 
-          <t>Before a client can send data together with the SYN, it must request
-          a cookie to the server, as shown in Figure <xref target="fig_tfocookie"/>.
+          <t>Before an initiator can send data together with the SYN, it must request
+          a cookie to the listener, as shown in Figure <xref target="fig_tfocookie"/>.
 	  This is done by simply combining the TFO and MPTCP options.</t>
 
-          <figure align="center" anchor="fig_tfocookie" title="Cookie request">
+          <figure align="center" anchor="fig_tfocookie" title="Cookie request - sequence number and length are annotated as Seq(Lenght) and used hereafter in the figures.">
           <artwork align="left"><![CDATA[
-   client                                                         server
-     |                                                              |
-     |    S Seq=0(Length=0) <MP_CAPABLE>, <TFO cookie request>      |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    S. 0(0) ack 1 <MP_CAPABLE>, <TFO cookie>                  |
-     | <----------------------------------------------------------- |
-     |                                                              |
-     |    .  0(0) ack 1 <MP_CAPABLE>                                |
-     | -----------------------------------------------------------> |
-     |                                                              |
+initiator                                                       listener
+    |                                                              |
+    |    S Seq=0(Length=0) <MP_CAPABLE>, <TFO cookie request>      |
+    | -----------------------------------------------------------> |
+    |                                                              |
+    |    S. 0(0) ack 1 <MP_CAPABLE>, <TFO cookie>                  |
+    | <----------------------------------------------------------- |
+    |                                                              |
+    |    .  0(0) ack 1 <MP_CAPABLE>                                |
+    | -----------------------------------------------------------> |
+    |                                                              |
            ]]></artwork>
 	  </figure>
 
           <t>Once this is done, the received cookie can be used for TFO, as shown
-          in Figure <xref target="fig_tfodata"/>. In this example, the client first
-	  sends 20 bytes in the SYN. The server immediately replies with 100 bytes
-	  following the SYN-ACK upon which the client replies with 20 more bytes.
+          in Figure <xref target="fig_tfodata"/>. In this example, the initiator first
+	  sends 20 bytes in the SYN. The listener immediately replies with 100 bytes
+	  following the SYN-ACK upon which the initiator replies with 20 more bytes.
 	  Note that the last segment in the figure
           has a TCP sequence number of 21, while the DSS subflow sequence
           number is 1 (because the TFO data is not part of the data sequence
           number space, as explained in Section <xref target="tfodata"/>.</t>
 
-	  <figure align="center" anchor="fig_tfodata" title="The server supports TFO">
+	  <figure align="center" anchor="fig_tfodata" title="The listener supports TFO">
           <artwork align="left"><![CDATA[
-   client                                                         server
-     |                                                              |
-     |    S  0(20) <MP_CAPABLE>, <TFO cookie>                       |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    S. 0(0) ack 21 <MP_CAPABLE>                               |
-     | <----------------------------------------------------------- |
-     |                                                              |
-     |    .  1(100) ack 21 <DSS ack=1 seq=1 ssn=1 dlen=100>         |
-     | <----------------------------------------------------------- |
-     |                                                              |
-     |    .  21(0) ack 1 <MP_CAPABLE>                               |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    .  21(20) ack 101 <DSS ack=101 seq=1 ssn=1 dlen=20>       |
-     | -----------------------------------------------------------> |
-     |                                                              |
+initiator                                                       listener
+    |                                                              |
+    |    S  0(20) <MP_CAPABLE>, <TFO cookie>                       |
+    | -----------------------------------------------------------> |
+    |                                                              |
+    |    S. 0(0) ack 21 <MP_CAPABLE>                               |
+    | <----------------------------------------------------------- |
+    |                                                              |
+    |    .  1(100) ack 21 <DSS ack=1 seq=1 ssn=1 dlen=100>         |
+    | <----------------------------------------------------------- |
+    |                                                              |
+    |    .  21(0) ack 1 <MP_CAPABLE>                               |
+    | -----------------------------------------------------------> |
+    |                                                              |
+    |    .  21(20) ack 101 <DSS ack=101 seq=1 ssn=1 dlen=20>       |
+    | -----------------------------------------------------------> |
+    |                                                              |
            ]]></artwork>
 	  </figure>
 
-          <t>In Figure <xref target="fig_tfofallback"/>, the server does not support TFO.  The client detects
-          that no state is created in the server (as no data is acked), and now
-          sends the MP_CAPABLE in the third ack, in order for the server to
+          <t>In Figure <xref target="fig_tfofallback"/>, the listener does not support TFO.  The initiator detects
+          that no state is created in the listener (as no data is acked), and now
+          sends the MP_CAPABLE in the third ack, in order for the listener to
           build its MPTCP context at then end of the establishment.  Now, the
           tfo data, retransmitted, becomes part of the data sequence mapping
           because it is effectively sent (in fact re-sent) after the
           establishment.</t>
 
-	  <figure align="center" anchor="fig_tfofallback" title="The server does not support TFO">
+	  <figure align="center" anchor="fig_tfofallback" title="The listener does not support TFO">
           <artwork align="left"><![CDATA[
-   client                                                         server
-     |                                                              |
-     |    S  0(20) <MP_CAPABLE>, <TFO cookie>                       |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    S. 0(0) ack 1 <MP_CAPABLE>                                |
-     | <----------------------------------------------------------- |
-     |                                                              |
-     |    .  1(0) ack 1 <MP_CAPABLE>                                |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    .  1(20) ack 1 <DSS ack=1 seq=1 ssn=1 dlen=20>            |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |    .  0(0) ack 21 <DSS ack=21 seq=1 ssn=1 dlen=0>            |
-     | <----------------------------------------------------------- |
-     |                                                              |
+initiator                                                       listener
+    |                                                              |
+    |    S  0(20) <MP_CAPABLE>, <TFO cookie>                       |
+    | -----------------------------------------------------------> |
+    |                                                              |
+    |    S. 0(0) ack 1 <MP_CAPABLE>                                |
+    | <----------------------------------------------------------- |
+    |                                                              |
+    |    .  1(0) ack 1 <MP_CAPABLE>                                |
+    | -----------------------------------------------------------> |
+    |                                                              |
+    |    .  1(20) ack 1 <DSS ack=1 seq=1 ssn=1 dlen=20>            |
+    | -----------------------------------------------------------> |
+    |                                                              |
+    |    .  0(0) ack 21 <DSS ack=21 seq=1 ssn=1 dlen=0>            |
+    | <----------------------------------------------------------- |
+    |                                                              |
            ]]></artwork>
 	  </figure>
 
-          <t>It is also possible that the server acknowledges only part of the TFO
+          <t>It is also possible that the listener acknowledges only part of the TFO
           data, as illustrated in Figure <xref target="fig_tfopartial"/>. The
-	  client will simply retransmit the missing data together with a DSS-mapping.</t>
+	  initiator will simply retransmit the missing data together with a DSS-mapping.</t>
 
 	  <figure align="center" anchor="fig_tfopartial" title="Partial data acknowledgement">
           <artwork align="left"><![CDATA[
-   client                                                         server
-     |                                                              |
-     |  S  0(1000) <MP_CAPABLE>, <TFO cookie>                       |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |  S. 0(0) ack 501 <MP_CAPABLE>                                |
-     | <----------------------------------------------------------- |
-     |                                                              |
-     |    .  501(0) ack 1 <MP_CAPABLE>                              |
-     | -----------------------------------------------------------> |
-     |                                                              |
-     |   .  501(500) ack 1 <DSS ack=1 seq=1 ssn=1 dlen=500>         |
-     | -----------------------------------------------------------> |
-     |                                                              |
+initiator                                                       listener
+    |                                                              |
+    |  S  0(1000) <MP_CAPABLE>, <TFO cookie>                       |
+    | -----------------------------------------------------------> |
+    |                                                              |
+    |  S. 0(0) ack 501 <MP_CAPABLE>                                |
+    | <----------------------------------------------------------- |
+    |                                                              |
+    |    .  501(0) ack 1 <MP_CAPABLE>                              |
+    | -----------------------------------------------------------> |
+    |                                                              |
+    |   .  501(500) ack 1 <DSS ack=1 seq=1 ssn=1 dlen=500>         |
+    | -----------------------------------------------------------> |
+    |                                                              |
            ]]></artwork>
 	  </figure>
      </section>
