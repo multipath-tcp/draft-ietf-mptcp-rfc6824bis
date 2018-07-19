@@ -431,11 +431,11 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
         the MP_CAPABLE option in the SYN-segment includes the initiator's key. If
 	the initiator however already upgraded to v1, it won't include the key in the
         SYN-segment. Thus, the listener will ignore the MP_CAPABLE of this
-        SYN-segment and reply with a SYN/ACK that does not include an MP_CAPABLE.
-        The initiator MAY retry a new connection with MPTCP v0 or regular TCP, based
-	on the importance of benefiting from multipath capabilities compared
-	to the danger of an MPTCP downgrade attack. Additionally,
-        the initiator MAY cache this information for future connections.</t>
+        SYN-segment and reply with a SYN/ACK that does not include an MP_CAPABLE,
+	thus leading to a fallback to regular TCP.
+	An initiator MAY cache this information about a peer and for future
+	connections, MAY choose to attempt using MPTCP v0, if supported, before
+	recording the host as not supporting MPTCP.</t>
 
         <t>The MP_CAPABLE option is variable-length, with different fields
         included depending on which packet the option is used on. The full 
