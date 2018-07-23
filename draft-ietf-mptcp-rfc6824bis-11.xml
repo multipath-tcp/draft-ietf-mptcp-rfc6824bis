@@ -31,6 +31,7 @@
   <!ENTITY RFC5961 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.5961.xml">
   <!ENTITY RFC6824 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.6824.xml">
   <!ENTITY RFC7413 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.7413.xml">
+  <!ENTITY RFC7430 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.7430.xml">
 ]>
 <?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
 <?rfc strict="no" ?>
@@ -277,6 +278,47 @@ handshake. The MPTCP connection is terminated by a connection-level FIN.</t>
 ]]></artwork></figure>
 </section>
 
+<t>Retransmission of the ACK + MP_CAPABLE can occur if it is not known if it has been received. The following diagrams show all possible exchanges for the initial subflow setup to ensure this reliability.</t>
+
+<figure><artwork align="left"><![CDATA[
+   Host A (with data to send immediately)  Host B
+   ------                                  ------
+   MP_CAPABLE                ->
+   [flags]
+                             <-            MP_CAPABLE
+                                           [B's key, flags]
+   ACK + MP_CAPABLE + data   ->
+   [A's key, B's key, flags, data-level details]
+
+
+   Host A (with data to send later)        Host B
+   ------                                  ------
+   MP_CAPABLE                ->
+   [flags]
+                             <-            MP_CAPABLE
+                                           [B's key, flags]
+   ACK + MP_CAPABLE          ->
+   [A's key, B's key, flags]
+
+   ACK + MP_CAPABLE + data   ->
+   [A's key, B's key, flags, data-level details]
+
+
+   Host A                                  Host B (sending first)
+   ------                                  ------
+   MP_CAPABLE                ->
+   [flags]
+                             <-            MP_CAPABLE
+                                           [B's key, flags]
+   ACK + MP_CAPABLE          ->
+   [A's key, B's key, flags]
+
+                             <-            ACK + DSS + data
+                                           [data-level details]
+]]></artwork></figure>
+</section>
+
+
 <section title="Associating a New Subflow with an Existing MPTCP Connection">
 <t>The exchange of keys in the MP_CAPABLE handshake provides material that can be used to authenticate the endpoints when new subflows will be set up. 
 Additional subflows begin in the same way as initiating a normal TCP connection, but the SYN, SYN/ACK, and ACK packets also carry the MP_JOIN option. </t>
@@ -360,6 +402,8 @@ Additional subflows begin in the same way as initiating a normal TCP connection,
 </section>
 
 <section title="Closing an MPTCP Connection">
+<t>When a host wants to close an existing subflow, but not the whole connection, it can initiate a regular TCP FIN/ACK exchange.</t>
+
 <t>When Host A wants to inform Host B that it has no more data to send, it signals this "Data FIN" as part of the Data Sequence Signal (see above). It has the same semantics and behavior as a regular TCP FIN, but at the connection level. Once all the data on the MPTCP connection has been successfully received, then this message is acknowledged at the connection level with a DATA_ACK. Further details are in <xref target="sec_close"/>.</t>
                        
 <figure><artwork align="left"><![CDATA[
@@ -367,8 +411,28 @@ Additional subflows begin in the same way as initiating a normal TCP connection,
    ------                                 ------
    DATA_SEQUENCE_SIGNAL      ->
    [Data FIN]
-
                              <-           (MPTCP DATA_ACK)
+]]></artwork></figure>
+
+<t>There is an additional method of connecton closure, referred to as "Fast Close", which is analogous to closing a single-path TCP connection with a RST signal. The MP_FASTCLOSE signal is used to indicate to the peer that the connection will be abruptly closed and no data will be accepted anymore. This can be used on an ACK (ensuring reliability of the signal), or a RST (whuch is not). Both examples are shown in the following diagrams. Further details are in <xref target="sec_fastclose"/>.</t>
+
+<figure><artwork align="left"><![CDATA[
+   Host A                                 Host B
+   ------                                 ------
+   ACK + MP_FASTCLOSE          ->
+   [B's key]
+
+   [RST on all other subflows] ->
+
+                               <-         [RST on all subflows]
+
+
+   Host A                                 Host B
+   ------                                 ------
+   RST + MP_FASTCLOSE          ->
+   [B's key] [on all subflows]
+
+                               <-         [RST on all subflows]
 ]]></artwork></figure>
 </section>
 
@@ -380,10 +444,9 @@ Additional subflows begin in the same way as initiating a normal TCP connection,
 address gets changed by a NAT. Setting up a new TCP flow is not possible if the passive opener is behind a NAT; 
 to allow subflows to be created when either end is behind a NAT, MPTCP uses the ADD_ADDR message. </t>
 
-<t>MPTCP falls back to ordinary TCP if MPTCP operation is not possible, for example, if one host is not MPTCP capable or if a middlebox alters the payload.</t>
+<t>MPTCP falls back to ordinary TCP if MPTCP operation is not possible, for example, if one host is not MPTCP capable or if a middlebox alters the payload. This is discussed in <xref target="sec_fallback"/>.</t>
 
-
-<t>To meet the threats identified in <xref target="RFC6181"/>, the following steps are taken: keys are sent in the clear in the MP_CAPABLE messages; MP_JOIN messages are secured with HMAC-SHA256 (<xref target="RFC2104"/>, <xref target="SHS"/>) using those keys; and standard TCP validity checks are made on the other messages (ensuring sequence numbers are in-window <xref target="RFC5961"/>). Further information can be found in <xref target="sec_security"/>.</t>
+<t>To meet the threats identified in <xref target="RFC6181"/>, the following steps are taken: keys are sent in the clear in the MP_CAPABLE messages; MP_JOIN messages are secured with HMAC-SHA256 (<xref target="RFC2104"/>, <xref target="SHS"/>) using those keys; and standard TCP validity checks are made on the other messages (ensuring sequence numbers are in-window <xref target="RFC5961"/>). Residual threats to MPTCP v0 <xref target="RFC6824"/> were identified in <xref target="RFC7430"/>, and those affecting the protocol (i.e. modification to ADD_ADDR) have been incorporated in this document. Further discussion of security can be found in <xref target="sec_security"/>.</t>
 </list></t>
 </section>
     </section>
@@ -497,8 +560,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
 
         <t>The ACK carries both A's key and B's key. This is the first time that A's key is seen on the wire, although it is expected that A will have generated a key locally before the initial SYN. The echoing of B's key allows B to operate statelessly, as described above. Therefore, A's key must be delivered reliably to B, and in order to do this, the transmission of this packet must be made reliable.</t>
 
-
-        <t>If B has data to send first, then the reliable delivery of the ACK can be inferred by the receipt of this data with a MPTCP Data Sequence Signal (DSS) option (<xref target="sec_generalop"/>). If, however, A wishes to send data first, it would not know whether the ACK has successfully been received, and thus whether the MPTCP is successfully established. Therefore, on the first data A has to send (if it has not received any data from B), it MUST also include a MP_CAPABLE option, with additional data parameters (the Data-Level Length and optional Checksum as shown in <xref target="tcpm_capable"/>). This packet may be the third ACK if data is ready to be sent by the application, or may be a later packet if the application only later has data to send. This MP_CAPABLE option is in place of the DSS, and simply specifies the data-level length of the payload, and the checksum (if the use of checksums is negotiated). This is the minimal data required to establish a MPTCP connection - it allows validation of the payload, and given it is the first data, the Initial Data Sequence Number (IDSN) is also known (as it is generated from the key, as described below). Conveying the keys on the first data packet allows the TCP reliability mechanisms to ensure the packet is successfully delivered. The receiver will acknowledge this data a the connection level with a Data ACK, as if a DSS option has been received.</t>
+        <t>If B has data to send first, then the reliable delivery of the ACK+MP_CAPABLE can be inferred by the receipt of this data with a MPTCP Data Sequence Signal (DSS) option (<xref target="sec_generalop"/>). If, however, A wishes to send data first, it has two options to ensure the reliable delivery of the ACK+MP_CAPABLE. If it immediately has data to send, then the third ACK (with data) would also contain an MP_CAPABLE option with additional data parameters (the Data-Level Length and optional Checksum as shown in <xref target="tcpm_capable"/>). If A does not immediately have data to send, it MUST include the MP_CAPABLE on the third ACK, but without the additional data parameters. When A does have data to send, it must repeat the sending of the MP_CAPABLE option from the third ACK, with additional data parameters. This MP_CAPABLE option is in place of the DSS, and simply specifies the data-level length of the payload, and the checksum (if the use of checksums is negotiated). This is the minimal data required to establish a MPTCP connection - it allows validation of the payload, and given it is the first data, the Initial Data Sequence Number (IDSN) is also known (as it is generated from the key, as described below). Conveying the keys on the first data packet allows the TCP reliability mechanisms to ensure the packet is successfully delivered. The receiver will acknowledge this data a the connection level with a Data ACK, as if a DSS option has been received.</t>
 
         <t>There could be situations where both A and B attempt to transmit initial data at the same time. For example, if A did not initially have data to send, but then needed to transmit data before it had received anything from B, it would use a MP_CAPABLE option with data parameters (since it would not know if the MP_CAPABLE on the ACK was received). In such a situation, B may also have transmitted data with a DSS option, but it had not yet been received at A. Therefore, B has received data with a MP_CAPABLE mapping after it has sent data with a DSS option. To ensure these situations can be handled, it follows that the data parameters in a MP_CAPABLE are semantically equivalent to those in a DSS option and can be used interchangeably. Similar situations could occur when the MP_CAPABLE with data is lost and retransmitted. Furthermore, in the case of TCP Segmentation Offloading, the MP_CAPABLE with data parameters may be duplicated across multiple packets, and implementations must also be able to cope with duplicate MP_CAPABLE mappings as well as duplicate DSS mappings.</t>
 
@@ -1534,8 +1596,6 @@ break the multipath connections, it will just reduce the opportunity to open mul
 
         <t>If, however, an ACK is received for data (not just for the SYN) without a DSS option containing a Data ACK, the sender determines the path is not MPTCP capable. In the case of this occurring on an additional subflow (i.e., one started with MP_JOIN), the host MUST close the subflow with a RST. In the case of the first subflow (i.e., that started with MP_CAPABLE), it MUST drop out of an MPTCP mode back to regular TCP. The sender will send one final data sequence mapping, with the Data-Level Length value of 0 indicating an infinite mapping (in case the path drops options in one direction only), and then revert to sending data on the single subflow without any MPTCP options.</t>
 
-        <t>Note that this rule essentially prohibits the sending of data on the third packet of an MP_CAPABLE or MP_JOIN handshake, since both that option and a DSS cannot fit in TCP option space. If the initiator is to send first, another segment must be sent that contains the data and DSS. Note also that an additional subflow cannot be used until the initial path has been verified as MPTCP capable.</t>
-
         <t>If a subflow breaks during operation, e.g. if it is re-routed and MPTCP options are no longer permitted, then once this is detected (by the subflow-level receive buffer filling up), the subflow SHOULD be treated as broken and closed with a RST, since no data can be delivered to the application layer, and no fallback signal can be reliably sent. This RST SHOULD include the MP_TCPRST option (<xref target="sec_reset"/>) with an appropriate reason code.</t>
 
         <t>These rules should cover all cases where such a failure could happen: whether it's on the forward or reverse path and whether the server or the client first sends data. If lost options on data packets occur on any other subflow apart from the initial subflow, it should be treated as a standard path failure. The data would not be DATA_ACKed (since there is no mapping for the data), and the subflow can be closed with a RST, containing a MP_TCPRST option (<xref target="sec_reset"/>) with an appropriate reason code.</t>
@@ -1811,10 +1871,13 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
 
         In order to achieve these goals, MPTCP includes a hash-based handshake algorithm documented in Sections <xref target="sec_init" format="counter"/> and <xref target="sec_join" format="counter"/>.</t>
 
-      <t>The security of the MPTCP connection hangs on the use of keys that are shared once at the start of the first subflow, and are never sent again over the network (unless used in the fast close mechanism, <xref target="sec_fastclose"/>).  To ease demultiplexing while not giving away any cryptographic material, future subflows use a truncated cryptographic hash of this key as the connection identification "token".  The keys are concatenated and used as keys for creating Hash-based Message Authentication Codes (HMACs) used on subflow setup, in order to verify that the parties in the handshake are the same as in the original connection setup.  It also provides verification that the peer can receive traffic at this new address.  Replay attacks would still be possible when only keys are used; therefore, the handshakes use single-use random numbers (nonces) at both ends -- this ensures the HMAC will never be the same on two handshakes. Guidance on generating random numbers suitable for use as keys is given in <xref target="RFC4086"/> and discussed in <xref target="sec_init"/>.</t>
+      <t>The security of the MPTCP connection hangs on the use of keys that are shared once at the start of the first subflow, and are never sent again over the network (unless used in the fast close mechanism, <xref target="sec_fastclose"/>).  To ease demultiplexing while not giving away any cryptographic material, future subflows use a truncated cryptographic hash of this key as the connection identification "token".  The keys are concatenated and used as keys for creating Hash-based Message Authentication Codes (HMACs) used on subflow setup, in order to verify that the parties in the handshake are the same as in the original connection setup.  It also provides verification that the peer can receive traffic at this new address.  Replay attacks would still be possible when only keys are used; therefore, the handshakes use single-use random numbers (nonces) at both ends -- this ensures the HMAC will never be the same on two handshakes. Guidance on generating random numbers suitable for use as keys is given in <xref target="RFC4086"/> and discussed in <xref target="sec_init"/>. HMAC is also used to secure the ADD_ADDR option, due to the threats identified in <xref target="RFC7430"/>.</t>
       <t>
       The use of crypto capability bits in the initial connection handshake to negotiate use of a particular algorithm allows the deployment of additional crypto mechanisms in the future. Note that this would be susceptible to bid-down attacks only if the attacker was on-path (and thus would be able to modify the data anyway).
       The security mechanism presented in this document should therefore protect against all forms of flooding and hijacking attacks discussed in <xref target="RFC6181"/>.</t>
+
+      <t>The version negotiation specified in <xref target="sec_init"/>, if differing MPTCP versions shared a common negotiation format, would allow an on-path attacker to apply a theoretical bid-down attack. However, since the v1 and v0 protocols have a different handshake, this is not an attack that can be applied here. Furthermore, an on-path attacker would have access to the raw data, negating any other TCP-level security mechanisms. 
+      Also a change from <xref target="RFC6824"/> has removed the subflow identifer from the MP_PRIO option (<xref target="sec_policy"/>), to remove the theoretical attack where a subflow could be placed in "backup" mode by an attacker.</t>
       
       <t>During normal operation, regular TCP protection mechanisms (such as ensuring sequence numbers are in-window) will provide the same level of protection against attacks on individual TCP subflows as exists for regular TCP today. Implementations will introduce additional buffers compared to regular TCP, to reassemble data at the connection level. The application of window sizing will minimize the risk of denial-of-service attacks consuming resources.</t>
 
@@ -2148,6 +2211,7 @@ subflow-specific windows.</t>
       &RFC6528;
       &RFC6824;
       &RFC7413;
+      &RFC7430;
 
 
 <!--      &TCPLO; draft-ananth-tcpm-tcpoptext-00; Expired-->
