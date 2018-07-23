@@ -414,7 +414,7 @@ Additional subflows begin in the same way as initiating a normal TCP connection,
                              <-           (MPTCP DATA_ACK)
 ]]></artwork></figure>
 
-<t>There is an additional method of connecton closure, referred to as "Fast Close", which is analogous to closing a single-path TCP connection with a RST signal. The MP_FASTCLOSE signal is used to indicate to the peer that the connection will be abruptly closed and no data will be accepted anymore. This can be used on an ACK (ensuring reliability of the signal), or a RST (whuch is not). Both examples are shown in the following diagrams. Further details are in <xref target="sec_fastclose"/>.</t>
+<t>There is an additional method of connecton closure, referred to as "Fast Close", which is analogous to closing a single-path TCP connection with a RST signal. The MP_FASTCLOSE signal is used to indicate to the peer that the connection will be abruptly closed and no data will be accepted anymore. This can be used on an ACK (ensuring reliability of the signal), or a RST (which is not). Both examples are shown in the following diagrams. Further details are in <xref target="sec_fastclose"/>.</t>
 
 <figure><artwork align="left"><![CDATA[
    Host A                                 Host B
