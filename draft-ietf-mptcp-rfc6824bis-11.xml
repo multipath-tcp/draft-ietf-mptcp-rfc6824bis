@@ -419,7 +419,7 @@ Additional subflows begin in the same way as initiating a normal TCP connection,
                              <-           (MPTCP DATA_ACK)
 ]]></artwork></figure>
 
-<t>There is an additional method of connecton closure, referred to as "Fast Close", which is analogous to closing a single-path TCP connection with a RST signal. The MP_FASTCLOSE signal is used to indicate to the peer that the connection will be abruptly closed and no data will be accepted anymore. This can be used on an ACK (ensuring reliability of the signal), or a RST (which is not). Both examples are shown in the following diagrams. Further details are in <xref target="sec_fastclose"/>.</t>
+<t>There is an additional method of connection closure, referred to as "Fast Close", which is analogous to closing a single-path TCP connection with a RST signal. The MP_FASTCLOSE signal is used to indicate to the peer that the connection will be abruptly closed and no data will be accepted anymore. This can be used on an ACK (ensuring reliability of the signal), or a RST (which is not). Both examples are shown in the following diagrams. Further details are in <xref target="sec_fastclose"/>.</t>
 
 <figure><artwork align="left"><![CDATA[
    Host A                                 Host B
@@ -549,7 +549,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
 
         <t>There is a risk that two different keys will hash to the same token. The risk of hash collisions is usually small, unless the host is handling many tens of thousands of connections. Therefore, an implementation SHOULD check its list of connection tokens to ensure there is not a collision before sending its key, and if there is, then it should generate a new key. This would, however, be costly for a server with thousands of connections. The subflow handshake mechanism (<xref target="sec_join"/>) will ensure that new subflows only join the correct connection, however, through the cryptographic handshake, as well as checking the connection tokens in both directions, and ensuring sequence numbers are in-window. So in the worst case if there was a token collision, the new subflow would not succeed, but the MPTCP connection would continue to provide a regular TCP service.</t>
 
-        <t>Since key generation is implementation-specific, there is no	requirement that they be simply random numbers. An implemention is free to exchange cryptographic material out-of-band and generate these keys from this, in order to provide additional mechanisms by which to verify the identity of the communicating entities. For example, an implementation could choose to link its MPTCP keys to those used in higher-layer TLS or SSH connections.</t>
+        <t>Since key generation is implementation-specific, there is no	requirement that they be simply random numbers. An implementation is free to exchange cryptographic material out-of-band and generate these keys from this, in order to provide additional mechanisms by which to verify the identity of the communicating entities. For example, an implementation could choose to link its MPTCP keys to those used in higher-layer TLS or SSH connections.</t>
 
         <t>If the server behaves in a
         stateless manner, it has to generate its own key in a verifiable
@@ -992,7 +992,7 @@ after it has been declared; however, the same data sequence number can be mapped
         then an implementation MAY include just the lower 32
         bits of the data sequence number in the data sequence mapping and/or
         Data ACK as an optimization, and an implementation can make this choice
-        independently for each packet. An implementaton MUST be able to receive
+        independently for each packet. An implementation MUST be able to receive
         and process both 64-bit or 32-bit sequence number values, but it is not 
         required that an implementation is able to send both.</t>
         
@@ -1643,7 +1643,7 @@ This infinite mapping will be a DSS option (<xref target="sec_generalop"/>)
 on the first new packet, containing a data sequence mapping that acts retroactively, referring to the start of the subflow sequence 
 number of the most recent segment that was known to be delivered intact (i.e. was successfully DATA_ACKed). From that point onwards, data can be altered 
 by a middlebox without affecting MPTCP, as the data stream is equivalent to a regular, legacy TCP session.
-The MP_FAIL signal affects only one direction of traffic. It is not mandatory for the reciever of an MP_FAIL
+The MP_FAIL signal affects only one direction of traffic. It is not mandatory for the receiver of an MP_FAIL
 to also respond with an MP_FAIL, since the paths may only be damaged in one direction. However, implementations
 MAY choose to send a MP_FAIL in the reverse direction and entirely revert to a regular TCP session.</t>
 
@@ -1882,7 +1882,7 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
       The security mechanism presented in this document should therefore protect against all forms of flooding and hijacking attacks discussed in <xref target="RFC6181"/>.</t>
 
       <t>The version negotiation specified in <xref target="sec_init"/>, if differing MPTCP versions shared a common negotiation format, would allow an on-path attacker to apply a theoretical bid-down attack. However, since the v1 and v0 protocols have a different handshake, this is not an attack that can be applied here. Furthermore, an on-path attacker would have access to the raw data, negating any other TCP-level security mechanisms. 
-      Also a change from <xref target="RFC6824"/> has removed the subflow identifer from the MP_PRIO option (<xref target="sec_policy"/>), to remove the theoretical attack where a subflow could be placed in "backup" mode by an attacker.</t>
+      Also a change from <xref target="RFC6824"/> has removed the subflow identifier from the MP_PRIO option (<xref target="sec_policy"/>), to remove the theoretical attack where a subflow could be placed in "backup" mode by an attacker.</t>
       
       <t>During normal operation, regular TCP protection mechanisms (such as ensuring sequence numbers are in-window) will provide the same level of protection against attacks on individual TCP subflows as exists for regular TCP today. Implementations will introduce additional buffers compared to regular TCP, to reassemble data at the connection level. The application of window sizing will minimize the risk of denial-of-service attacks consuming resources.</t>
 
