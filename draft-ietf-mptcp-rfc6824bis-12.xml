@@ -44,7 +44,7 @@
 <?rfc subcompact="no" ?>
 <?rfc rfcedstyle="yes"?>
 
-<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-11" ipr="trust200902" obsoletes="6824">
+<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-12" ipr="trust200902" obsoletes="6824">
   <front>
     <title abbrev="Multipath TCP">TCP Extensions for Multipath Operation with Multiple Addresses</title>
 
@@ -281,7 +281,6 @@ handshake. The MPTCP connection is terminated by a connection-level FIN.</t>
    ACK + MP_CAPABLE (+ data) ->
    [A's key, B's key, flags, (data-level details)]
 ]]></artwork></figure>
-</section>
 
 <t>Retransmission of the ACK + MP_CAPABLE can occur if it is not known if it has been received. The following diagrams show all possible exchanges for the initial subflow setup to ensure this reliability.</t>
 
@@ -2191,6 +2190,7 @@ subflow-specific windows.</t>
       &RFC0793;
       &RFC2119;
       &RFC6182;
+      &RFC8174;
 
 <reference anchor='SHS' target="http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf"><front><title abbrev="Secure Hash Standard">Secure Hash Standard</title><author><organization>National Institute of Science and Technology</organization></author><date month="August" year="2015"/></front><seriesInfo name="Federal Information Processing Standard (FIPS)" value="180-4"/></reference>
 
