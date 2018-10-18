@@ -1388,7 +1388,7 @@ allocating such IDs is implementation specific.</t>
    +-------------------------------+-------------------------------+
    |   Port (2 octets, optional)   |                               |
    +-------------------------------+                               |
-   |        Truncated HMAC (8 octets, if length > 10 octets)       |
+   |                Truncated HMAC (8 octets, if E=0)              |
    |                               +-------------------------------+
    |                               |
    +-------------------------------+
