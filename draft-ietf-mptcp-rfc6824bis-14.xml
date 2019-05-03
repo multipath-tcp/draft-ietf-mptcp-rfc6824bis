@@ -8,7 +8,6 @@
   <!ENTITY RFC4987 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.4987.xml">
   <!ENTITY RFC6234 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.6234.xml">
   <!ENTITY RFC4086 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.4086.xml">
-  <!ENTITY RFC3168 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.3168.xml">
   <!ENTITY RFC5681 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.5681.xml">
   <!ENTITY RFC2119 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml">
   <!ENTITY RFC2992 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.2992.xml">
@@ -29,7 +28,6 @@
   <!ENTITY RFC6897 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.6897.xml">
   <!ENTITY RFC6528 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.6528.xml">
   <!ENTITY RFC5961 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.5961.xml">
-  <!ENTITY RFC6824 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.6824.xml">
   <!ENTITY RFC7413 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.7413.xml">
   <!ENTITY RFC7430 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.7430.xml">
   <!ENTITY RFC8174 SYSTEM "https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.8174.xml">
@@ -45,7 +43,7 @@
 <?rfc subcompact="no" ?>
 <?rfc rfcedstyle="yes"?>
 
-<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-13" ipr="trust200902" obsoletes="6824">
+<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-14" ipr="trust200902" obsoletes="6824">
   <front>
     <title abbrev="Multipath TCP">TCP Extensions for Multipath Operation with Multiple Addresses</title>
 
@@ -138,11 +136,11 @@ simultaneously. This document presents the protocol changes required to add mult
           <t>Congestion control <xref target="RFC6356"/> presents a safe congestion control algorithm for coupling the behavior of the multiple paths in order to "do no harm" to other network users.</t>
           <t>Application considerations <xref target="RFC6897"/> discusses what impact MPTCP will have on applications, what applications will want to do with MPTCP, and as a consequence of these factors, what API extensions an MPTCP implementation should present.</t>
         </list>
-      This document is an update to, and obsoletes, the v0 specification of Multipath TCP <xref target="RFC6824"/>. This document specifies MPTCP v1, which is not backward compatible with MPTCP v0. This document additionally defines version negotiation procedures for implementations that support both versions.
+      This document is an update to, and obsoletes, the v0 specification of Multipath TCP (RFC6824). This document specifies MPTCP v1, which is not backward compatible with MPTCP v0. This document additionally defines version negotiation procedures for implementations that support both versions.
       </t>
 
       <section title="Design Assumptions" anchor="sec_assum">
-        <t>In order to limit the potentially huge design space, the working group imposed two key constraints on the Multipath TCP design presented in this document:
+        <t>In order to limit the potentially huge design space, the mptcp working group imposed two key constraints on the Multipath TCP design presented in this document:
           <list style="symbols">
             <t>It must be backwards-compatible with current, regular TCP, to increase its chances of deployment.</t>
             <t>It can be assumed that one or both hosts are multihomed and multiaddressed.</t>
@@ -219,7 +217,7 @@ Host B.</t>
 at hosts. Combinations of these multiple addresses equate to the additional paths. 
 In the example, other potential paths that could be set up are A1&lt;-&gt;B2 and A2&lt;-&gt;B2. 
 Although this additional session is shown as being initiated from A2, it could equally have 
-been initiated from B1.</t>
+been initiated from B1 or B2.</t>
             <t>The discovery and setup of additional subflows
 will be achieved through a path management method; this document describes a mechanism 
 by which a host can initiate new subflows by using its own additional addresses, or by 
@@ -451,7 +449,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
 
 <t>MPTCP falls back to ordinary TCP if MPTCP operation is not possible, for example, if one host is not MPTCP capable or if a middlebox alters the payload. This is discussed in <xref target="sec_fallback"/>.</t>
 
-<t>To address the threats identified in <xref target="RFC6181"/>, the following steps are taken: keys are sent in the clear in the MP_CAPABLE messages; MP_JOIN messages are secured with HMAC-SHA256 (<xref target="RFC2104"/>, <xref target="SHS"/>) using those keys; and standard TCP validity checks are made on the other messages (ensuring sequence numbers are in-window <xref target="RFC5961"/>). Residual threats to MPTCP v0 <xref target="RFC6824"/> were identified in <xref target="RFC7430"/>, and those affecting the protocol (i.e. modification to ADD_ADDR) have been incorporated in this document. Further discussion of security can be found in <xref target="sec_security"/>.</t>
+<t>To address the threats identified in <xref target="RFC6181"/>, the following steps are taken: keys are sent in the clear in the MP_CAPABLE messages; MP_JOIN messages are secured with HMAC-SHA256 (<xref target="RFC2104"/>, <xref target="SHS"/>) using those keys; and standard TCP validity checks are made on the other messages (ensuring sequence numbers are in-window <xref target="RFC5961"/>). Residual threats to MPTCP v0 were identified in <xref target="RFC7430"/>, and those affecting the protocol (i.e. modification to ADD_ADDR) have been incorporated in this document. Further discussion of security can be found in <xref target="sec_security"/>.</t>
 </list></t>
 </section>
     </section>
@@ -488,7 +486,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
         so on this particular connection.</t>
 
         <t>The MP_CAPABLE exchange in this specification (v1) is different to
-        that specified in v0 <xref target="RFC6824"/>.  If a host supports multiple versions
+        that specified in v0.  If a host supports multiple versions
         of MPTCP, the sender of the MP_CAPABLE option SHOULD signal the
         highest version number it supports.  In return, in its MP_CAPABLE option,
         the receiver will signal the version number it wishes to use, which MUST
@@ -497,13 +495,17 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
         There is a caveat though with respect to this version negotiation with
         old listeners that only support v0. A listener that supports v0 expects that
         the MP_CAPABLE option in the SYN-segment includes the initiator's key. If
-	the initiator however already upgraded to v1, it won't include the key in the
-        SYN-segment. Thus, the listener will ignore the MP_CAPABLE of this
-        SYN-segment and reply with a SYN/ACK that does not include an MP_CAPABLE,
-	thus leading to a fallback to regular TCP.
-	An initiator MAY cache this information about a peer and for future
-	connections, MAY choose to attempt using MPTCP v0, if supported, before
-	recording the host as not supporting MPTCP.</t>
+        the initiator however already upgraded to v1, it won't include the key in the
+        SYN-segment. Thus, the listener will ignore the MP_CAPABLE of this SYN-segment
+        and reply with a SYN/ACK that does not include an MP_CAPABLE. The initiator MAY
+        choose to immediately fall back to TCP or MAY choose to attempt a connection
+        using MPTCP v0 (if the initiator supports v0), in order to discover whether the
+        listener supports the earlier version of MPTCP. In general a MPTCP v0 connection
+        is likely to be preferred to a TCP one, however in a particular deployment scenario
+        it may be known that the listener is unlikely to support MPTCPv0 and so the
+        initiator may prefer not to attempt a v0 connection. An initiator MAY cache 
+        information for a peer about what version of MPTCP it supports if any, and use
+        this information for future connection attempts.</t>
 
         <t>The MP_CAPABLE option is variable-length, with different fields
         included depending on which packet the option is used on. The full 
@@ -588,7 +590,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
 
         <t>Both the crypto and checksum bits negotiate capabilities in similar ways. For the Checksum Required bit (labeled "A"), if either host requires the use of checksums, checksums MUST be used. In other words, the only way for checksums not to be used is if both hosts in their SYNs set A=0. This decision is confirmed by the setting of the "A" bit in the third packet (the ACK) of the handshake. For example, if the initiator sets A=0 in the SYN, but the responder sets A=1 in the SYN/ACK, checksums MUST be used in both directions, and the initiator will set A=1 in the ACK. The decision whether to use checksums will be stored by an implementation in a per-connection binary state variable. If A=1 is received by a host that does not want to use checksums, it MUST fall back to regular TCP by ignoring the MP_CAPABLE option as if it was invalid.</t>
 
-        <t>For crypto negotiation, the responder has the choice. The initiator creates a proposal setting a bit for each algorithm it supports to 1 (in this version of the specification, there is only one proposal, so bit "H" will be always set to 1). The responder responds with only 1 bit set -- this is the chosen algorithm. The rationale for this behavior is that the responder will typically be a server with potentially many thousands of connections, so it may wish to choose an algorithm with minimal computational complexity, depending on the load. If a responder does not support (or does not want to support) any of the initiator's proposals, it can respond without an MP_CAPABLE option, thus forcing a fallback to regular TCP.</t>
+        <t>For crypto negotiation, the responder has the choice. The initiator creates a proposal setting a bit for each algorithm it supports to 1 (in this version of the specification, there is only one proposal, so bit "H" will be always set to 1). The responder responds with only 1 bit set -- this is the chosen algorithm. The rationale for this behavior is that the responder will typically be a server with potentially many thousands of connections, so it may wish to choose an algorithm with minimal computational complexity, depending on the load. If a responder does not support (or does not want to support) any of the initiator's proposals, it MUST respond without an MP_CAPABLE option, thus forcing a fallback to regular TCP.</t>
 
         <t>The MP_CAPABLE option is only used in the first subflow of a connection, in order to identify the connection; all following subflows will use the "Join" option (see <xref target="sec_join"/>) to join the existing connection.</t>
         <t>If a SYN contains an MP_CAPABLE option but the
@@ -707,7 +709,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
                         1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +---------------+---------------+-------+-----+-+---------------+
-   |     Kind      |  Length = 12  |Subtype|     |B|   Address ID  |
+   |     Kind      |  Length = 12  |Subtype|(rsv)|B|   Address ID  |
    +---------------+---------------+-------+-----+-+---------------+
    |                   Receiver's Token (32 bits)                  |
    +---------------------------------------------------------------+
@@ -769,7 +771,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
                         1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +---------------+---------------+-------+-----+-+---------------+
-   |     Kind      |  Length = 16  |Subtype|     |B|   Address ID  |
+   |     Kind      |  Length = 16  |Subtype|(rsv)|B|   Address ID  |
    +---------------+---------------+-------+-----+-+---------------+
    |                                                               |
    |                Sender's Truncated HMAC (64 bits)              |
@@ -937,7 +939,7 @@ mapping from the subflow sequence number to the data sequence number. This is us
 This explicit mapping for a range of data was chosen rather than per-packet signaling to assist with compatibility with situations where TCP/IP segmentation or coalescing is undertaken separately from the stack that is generating the data flow (e.g., through the use of TCP segmentation offloading on network interface cards, or by middleboxes such as performance enhancing proxies). It also allows a single mapping to cover many packets, which may be useful in bulk transfer situations.</t>
 
         <t>A mapping is fixed, in that the subflow sequence number is bound to the data sequence number after the mapping has been processed. A sender MUST NOT change this mapping
-after it has been declared; however, the same data sequence number can be mapped to by different subflows for retransmission purposes (see <xref target="sec_retransmit"/>). This would also permit the same data to be sent simultaneously on multiple subflows for resilience or efficiency purposes, especially in the case of lossy links. Although the detailed specification of such operation is outside the scope of this document, an implementation SHOULD treat the first data that is received at a subflow for the data sequence space as that which should be delivered to the application, and any later data for that sequence space should be ignored.</t>
+after it has been declared; however, the same data sequence number can be mapped to by different subflows for retransmission purposes (see <xref target="sec_retransmit"/>). This would also permit the same data to be sent simultaneously on multiple subflows for resilience or efficiency purposes, especially in the case of lossy links. Although the detailed specification of such operation is outside the scope of this document, an implementation SHOULD treat the first data that is received at a subflow for the data sequence space as that which should be delivered to the application, and any later data for that sequence space SHOULD be ignored.</t>
 
         <t>The data sequence number is specified as an absolute value, whereas the subflow sequence numbering is relative (the SYN at the start of the subflow has relative subflow sequence number 0). This is to allow middleboxes to change the initial sequence number of a subflow, such as firewalls that undertake Initial Sequence Number (ISN) randomization.</t>
 
@@ -1050,9 +1052,9 @@ after it has been declared; however, the same data sequence number can be mapped
 
         <t>The Data ACK, as for the DSN, can be sent as the full 64-bit
         value, or as the lower 32 bits.  If data is received with a 64-bit DSN, 
-        it MUST be acknowledged with a 64-bit Data ACK.  If
-        the DSN received is 32 bits, it is valid for the implementation 
-        to choose whether to send a 32-bit or 64-bit Data ACK.</t>
+        it MUST be acknowledged with a 64-bit Data ACK.  If the DSN received
+        is 32 bits, an implementation can choose whether to send a 32-bit or
+        64-bit Data ACK, and an implementation MUST accept either in this situation.</t>
 
         <t>The Data ACK proves that the data, and all required MPTCP
         signaling, has been received and accepted by the remote end.
@@ -1194,7 +1196,7 @@ They will perform flow control for those subflows with a smaller advertised rece
 
         <section title="Reliability and Retransmissions" anchor="sec_retransmit">
 
-          <t>The data sequence mapping allows senders to resend data with the same data sequence number on a different subflow. When doing this, a host MUST still retransmit the original data on the original subflow, in order to preserve the subflow integrity (middleboxes could replay old data, and/or could reject holes in subflows), and a receiver will ignore these retransmissions. While this is clearly suboptimal, for compatibility reasons this is sensible behavior. Optimizations could be negotiated in future versions of this protocol. Note also that this property would also permit a sender to always send the same data, with the same data sequence number, on multiple subflows, if it so desired for reliability reasons.</t>
+          <t>The data sequence mapping allows senders to resend data with the same data sequence number on a different subflow. When doing this, a host MUST still retransmit the original data on the original subflow, in order to preserve the subflow integrity (middleboxes could replay old data, and/or could reject holes in subflows), and a receiver will ignore these retransmissions. While this is clearly suboptimal, for compatibility reasons this is sensible behavior. Optimizations could be negotiated in future versions of this protocol. Note also that this property would also permit a sender to always send the same data, with the same data sequence number, on multiple subflows, if desired for reliability reasons.</t>
 
           <t>This protocol specification does not mandate any mechanisms for handling retransmissions, and much will be dependent upon local policy 
 (as discussed in <xref target="sec_policy"/>). One can imagine aggressive connection-level retransmissions policies where every packet lost at subflow level is retransmitted on
@@ -1213,7 +1215,7 @@ has been sent. In this way, the sender can always retransmit the data if needed,
 will typically resend the data on other working subflows after a timeout, and will keep trying to retransmit the data 
 on the failed subflow too. The sender will declare the subflow failed after a predefined upper bound on retransmissions is reached (which MAY be lower than the usual TCP limits of the Maximum Segment Life), or on the receipt of an ICMP error, and only then delete the outstanding data segments. </t>
 
-          <t>Multiple retransmissions are triggers that will indicate that a subflow performs badly and could lead to a host resetting the subflow with a RST. However, additional research is required to understand the heuristics of how and when to reset underperforming subflows. For example, a highly asymmetric path may be misdiagnosed as underperforming. A RST for this purpose SHOULD be accompanied with an "Unacceptable performance" MP_TCPRST option (<xref target="sec_reset"/>).</t>
+          <t>If multiple retransmissions are triggered that indicate that a subflow performs badly, this MAY lead to a host resetting the subflow with a RST. However, additional research is required to understand the heuristics of how and when to reset underperforming subflows. For example, a highly asymmetric path may be misdiagnosed as underperforming. A RST for this purpose SHOULD be accompanied with an "Unacceptable performance" MP_TCPRST option (<xref target="sec_reset"/>).</t>
 
         </section>
 
@@ -1245,7 +1247,7 @@ requirements such as these are discussed in detail in <xref target="RFC6897"/>.<
           <t>The ability to make effective choices at the sender requires full knowledge of the path "cost", which 
 is unlikely to be the case. It would be desirable for a receiver to be able to signal their own preferences for paths,
 since they will often be the multihomed party, and may have to pay for metered incoming bandwidth.</t>
-          <t>Whilst fine-grained control may be the most powerful solution, that would require some mechanism such as overloading the Explicit Congestion Notification (ECN) signal <xref target="RFC3168"/>, which is undesirable, and it is felt that there would not be sufficient benefit to justify an entirely new signal. Therefore, the MP_JOIN option (see <xref target="sec_join"/>) contains the 'B' bit, which allows a host to indicate to its peer that this path should be treated as a backup path to use only in the event of failure of other working subflows (i.e., a subflow where the receiver has indicated B=1 SHOULD NOT be used to send data unless there are no usable subflows where B=0).</t>
+          <t>To enable this, the MP_JOIN option (see <xref target="sec_join"/>) contains the 'B' bit, which allows a host to indicate to its peer that this path should be treated as a backup path to use only in the event of failure of other working subflows (i.e., a subflow where the receiver has indicated B=1 SHOULD NOT be used to send data unless there are no usable subflows where B=0).</t>
           <t>In the event that the available set of paths changes, a host may wish to signal a change in priority of subflows to the peer (e.g., a subflow that was previously set as backup should now take priority over all remaining subflows). Therefore, the MP_PRIO option, shown in <xref target="tcpm_prio"/>, can be used to change the 'B' flag of the subflow on which it is sent.</t>
           <t>Another use of the MP_PRIO option is to set the 'B' flag on a subflow to cleanly retire its use before closing it and removing it with REMOVE_ADDR <xref target="sec_remove_addr"/>, for example to support make-before-break session continuity, where new subflows are added before the previously used ones are closed.</t>
           <?rfc needLines='8'?>
@@ -1254,7 +1256,7 @@ since they will often be the multihomed party, and may have to pay for metered i
                         1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +---------------+---------------+-------+-----+-+
-   |     Kind      |     Length    |Subtype|     |B|
+   |     Kind      |     Length    |Subtype|(rsv)|B|
    +---------------+---------------+-------+-----+-+
               ]]></artwork>
           </figure>
@@ -1596,13 +1598,13 @@ allocating such IDs is implementation specific.</t>
 
         <t>A sender MUST include a DSS option with data sequence mapping in every segment until one of the sent segments has been acknowledged with a DSS option containing a Data ACK. Upon reception of the acknowledgment, the sender has the confirmation that the DSS option passes in both directions and may choose to send fewer DSS options than once per segment.</t>
 
-        <t>If, however, an ACK is received for data (not just for the SYN) without a DSS option containing a Data ACK, the sender determines the path is not MPTCP capable. In the case of this occurring on an additional subflow (i.e., one started with MP_JOIN), the host MUST close the subflow with a RST, which SHOULD contain a MP_TCPRST option (<xref target="sec_reset"/>) with a "Middlebox interferance" reason code.</t>
+        <t>If, however, an ACK is received for data (not just for the SYN) without a DSS option containing a Data ACK, the sender determines the path is not MPTCP capable. In the case of this occurring on an additional subflow (i.e., one started with MP_JOIN), the host MUST close the subflow with a RST, which SHOULD contain a MP_TCPRST option (<xref target="sec_reset"/>) with a "Middlebox interference" reason code.</t>
 
         <t>In the case of such an ACK being received on the first subflow (i.e., that started with MP_CAPABLE), before any additional subflows are added, the implementation MUST drop out of an MPTCP mode, back to regular TCP. The sender will send one final data sequence mapping, with the Data-Level Length value of 0 indicating an infinite mapping (to inform the other end in case the path drops options in one direction only), and then revert to sending data on the single subflow without any MPTCP options.</t>
 
-        <t>If a subflow breaks during operation, e.g. if it is re-routed and MPTCP options are no longer permitted, then once this is detected (by the subflow-level receive buffer filling up), the subflow SHOULD be treated as broken and closed with a RST, since no data can be delivered to the application layer, and no fallback signal can be reliably sent. This RST SHOULD include the MP_TCPRST option (<xref target="sec_reset"/>) with a "Middlebox interferance" reason code.</t>
+        <t>If a subflow breaks during operation, e.g. if it is re-routed and MPTCP options are no longer permitted, then once this is detected (by the subflow-level receive buffer filling up, since there is no mapping available in order to DATA_ACK this data), the subflow SHOULD be treated as broken and closed with a RST, since no data can be delivered to the application layer, and no fallback signal can be reliably sent. This RST SHOULD include the MP_TCPRST option (<xref target="sec_reset"/>) with a "Middlebox interference" reason code.</t>
 
-        <t>These rules should cover all cases where such a failure could happen: whether it's on the forward or reverse path and whether the server or the client first sends data. If lost options on data packets occur on any other subflow apart from the initial subflow, it should be treated as a standard path failure. The data would not be DATA_ACKed (since there is no mapping for the data), and the subflow can be closed with a RST, containing a MP_TCPRST option (<xref target="sec_reset"/>) with a "Middlebox interferance" reason code.</t>
+        <t>These rules should cover all cases where such a failure could happen: whether it's on the forward or reverse path and whether the server or the client first sends data.</t>
 
         <t>So far this section has discussed the lost of MPTCP options, either initially, or during the course of the connection. As described in <xref target="sec_generalop"/>, each portion of data for which there is a mapping is protected by a checksum, if checksums have been negotiated. This mechanism is used to detect if middleboxes have made any adjustments to the payload (added, removed, or changed data). A checksum will fail if the data has been changed in any way. This will also detect if the length of data on the subflow is increased or decreased, and this means the data sequence mapping is no longer valid. The sender no longer knows what subflow-level sequence number the receiver is genuinely operating at (the middlebox will be faking ACKs in return), and it cannot signal any further mappings. Furthermore, in addition to the possibility of payload modifications that are valid at the application layer, there is the possibility that such modifications could be triggered across MPTCP segment boundaries, corrupting the data. Therefore, all data from the start of the segment that failed the checksum onwards is not trustworthy.</t>
 
@@ -1708,13 +1710,14 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
           segments, and so the overheads 
           of using MPTCP outweigh any benefits. A heuristic is required,
           therefore, to decide when to start using additional subflows in 
-          an MPTCP connection. We expect that experience gathered from
-          deployments will provide further guidance on this, and will be
-          affected by particular application characteristics (which are
-          likely to change over time). However, a suggested general-purpose
-          heuristic that an implementation MAY choose to employ is as follows.
-          Results from experimental deployments are needed in order to verify
-          the correctness of this proposal.</t>
+          an MPTCP connection. Experimental deployments have shown that
+          MPTCP can be applied in a range of scenarios so an implementation
+          is likely to need to take into account factors including the type of
+          traffic being sent and duration of session, and this information
+          MAY be signalled by the application layer.</t>
+
+          <t>However, for standard TCP traffic, a suggested general-purpose
+          heuristic that an implementation MAY choose to employ is as follows.</t>
 
           <t>If a host has data buffered for its peer (which implies that the
           application has received a request for data), the host opens one
@@ -1740,7 +1743,7 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
 	  set up a subflow between the same pair of addresses. This leads to an
 	  inefficient use of resources.</t>
 
-          <t>If the the same ports are used on all subflows, as recommended above, 
+          <t>If the same ports are used on all subflows, as recommended above, 
           then standard TCP simultaneous open logic should take care of this situation 
           and only one subflow will be established between the address pairs. However, 
           this relies on the same ports being used at both end hosts. If a host does
@@ -1765,7 +1768,8 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
           SYNs for a connection. A host may keep a system-wide cache of such 
           information, so that it can back off from using MPTCP, firstly for that
           particular destination host, and eventually on a whole interface, if 
-          MPTCP connections continue failing.</t>
+          MPTCP connections continue failing. The duration of such a cache would
+          be implementation-specific.</t>
 
           <t>Another failure could occur when the MP_JOIN handshake fails.
           <xref target="sec_errors"/> specifies that an incorrect handshake MUST
@@ -1878,7 +1882,7 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
       The security mechanism presented in this document should therefore protect against all forms of flooding and hijacking attacks discussed in <xref target="RFC6181"/>.</t>
 
       <t>The version negotiation specified in <xref target="sec_init"/>, if differing MPTCP versions shared a common negotiation format, would allow an on-path attacker to apply a theoretical bid-down attack. Since the v1 and v0 protocols have a different handshake, such an attack would require the client to re-establish the connection using v0, and this being supported by the server. Note that an on-path attacker would have access to the raw data, negating any other TCP-level security mechanisms. 
-      Also a change from <xref target="RFC6824"/> has removed the subflow identifier from the MP_PRIO option (<xref target="sec_policy"/>), to remove the theoretical attack where a subflow could be placed in "backup" mode by an attacker.</t>
+      Also a change from RFC6824 has removed the subflow identifier from the MP_PRIO option (<xref target="sec_policy"/>), to remove the theoretical attack where a subflow could be placed in "backup" mode by an attacker.</t>
       
       <t>During normal operation, regular TCP protection mechanisms (such as ensuring sequence numbers are in-window) will provide the same level of protection against attacks on individual TCP subflows as exists for regular TCP today. Implementations will introduce additional buffers compared to regular TCP, to reassemble data at the connection level. The application of window sizing will minimize the risk of denial-of-service attacks consuming resources.</t>
 
@@ -2015,7 +2019,7 @@ subflow-specific windows.</t>
     </section>
 
     <section anchor="IANA" title="IANA Considerations">
-      <t>This document obsoletes <xref target="RFC6824"/> and as such IANA is requested to update the TCP option space registry to point to this document for Multipath TCP, as follows:</t>
+      <t>This document obsoletes RFC6824 and as such IANA is requested to update the TCP option space registry to point to this document for Multipath TCP, as follows:</t>
 
       <texttable anchor="table_tcpo" title="TCP Option Kind Numbers">
         <ttcol align="center">Kind</ttcol>
@@ -2030,9 +2034,9 @@ subflow-specific windows.</t>
       </texttable>
 
     <section anchor="IANA_subtypes" title="MPTCP Option Subtypes">
-    <t>The 4-bit MPTCP subtype sub-registry ("MPTCP Option Subtypes" under the "Transmission Control Protocol (TCP) Parameters" registry) was defined in <xref target="RFC6824"/>.
-      This document defines one additional subtype (ADD_ADDR) and updates the references to this document for all sub-types except ADD_ADDR, which is deprecated. The updates are
-      listed in the following table.</t>
+      <t>The 4-bit MPTCP subtype sub-registry ("MPTCP Option Subtypes" under the "Transmission Control Protocol (TCP) Parameters" registry) was defined in RFC6824. Since RFC6824 was an Experimental not Standards Track RFC, and since no further entries have occurred beyond those pointing to RFC6824, IANA is requested to replace the existing registry with <xref target="table_iana"/> and with the following explanatory note.</t>
+
+      <t>Note: This registry specifies the MPTCP Option Subtypes for MPTCP v1, which obsoletes the Experimental MPTCP v0. For the MPTCP v0 subtypes, please refer to RFC6824.</t>
 
       <texttable anchor="table_iana" title="MPTCP Option Subtypes">
         <ttcol align="center">Value</ttcol>
@@ -2092,11 +2096,14 @@ subflow-specific windows.</t>
         
       </texttable>
 
-      <t>Values 0x9 through 0xe are currently unassigned. Option 0xf is reserved for use by private experiments. Its use may be formalized in a future specification.</t>
-      </section>
+      <t>Values 0x9 through 0xe are currently unassigned. Option 0xf is reserved for use by private experiments. Its use may be formalized in a future specification. Future assignments in this registry are to be defined by Standards Action as defined by <xref target="RFC8126"/>.  Assignments consist of the MPTCP subtype's symbolic name and its associated value, and a reference to its specification.</t>
+    </section>
 
-      <section anchor="IANA_handshake" title="MPTCP Handshake Algorithms">
-      <t>IANA has created another sub-registry, "MPTCP Handshake Algorithms" under the "Transmission Control Protocol (TCP) Parameters" registry, based on the flags in MP_CAPABLE (<xref target="sec_init"/>). IANA is requested to update the references of this table to this document, as follows:</t>
+    <section anchor="IANA_handshake" title="MPTCP Handshake Algorithms">
+
+      <t>The "MPTCP Handshake Algorithms" sub-registry under the "Transmission Control Protocol (TCP) Parameters" registry was defined in RFC6824. Since RFC6824 was an Experimental not Standards Track RFC, and since no further entries have occurred beyond those pointing to RFC6824, IANA is requested to replace the existing registry with <xref target="table_crypto"/> and with the following explanatory note.</t>
+
+      <t>Note: This registry specifies the MPTCP Handshake Algorithms for MPTCP v1, which obsoletes the Experimental MPTCP v0. For the MPTCP v0 subtypes, please refer to RFC6824.</t>
 
       <texttable anchor="table_crypto" title="MPTCP Handshake Algorithms">
         <ttcol align="center">Flag Bit</ttcol>
@@ -2132,10 +2139,10 @@ subflow-specific windows.</t>
       to be defined by Standards Action as defined by <xref target="RFC8126"/>.
       Assignments consist of the value of the flags, a symbolic name for the algorithm,
       and a reference to its specification.</t>
-      </section>
+    </section>
 
-      <section anchor="IANA_rst" title="MP_TCPRST Reason Codes">
-      <t>IANA is requested to create a further sub-registry, "MP_TCPRST Reason Codes" under the "Transmission Control Protocol (TCP) Parameters" registry, based on the reason code in MP_TCPRST (<xref target="sec_reset"/>):</t>
+    <section anchor="IANA_rst" title="MP_TCPRST Reason Codes">
+      <t>IANA is requested to create a further sub-registry, "MPTCP MP_TCPRST Reason Codes" under the "Transmission Control Protocol (TCP) Parameters" registry, based on the reason code in MP_TCPRST (<xref target="sec_reset"/>) message. Initial values for this registry are give in <xref target="table_rstcodes"/>; future assignments are to be defined by Specification Required as defined by <xref target="RFC8126"/>. Assignments consist of the value of the code, a short description of its meaning, and a reference to its specification. The maximum value is 0xff.</t>
 
       <texttable anchor="table_rstcodes" title="MPTCP MP_TCPRST Reason Codes">
         <ttcol align="center">Code</ttcol>
@@ -2182,7 +2189,6 @@ subflow-specific windows.</t>
     <references title="Normative References">
       &RFC0793;
       &RFC2119;
-      &RFC6182;
       &RFC8174;
 
 <reference anchor='SHS' target="http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf"><front><title abbrev="Secure Hash Standard">Secure Hash Standard</title><author><organization>National Institute of Science and Technology</organization></author><date month="August" year="2015"/></front><seriesInfo name="Federal Information Processing Standard (FIPS)" value="180-4"/></reference>
@@ -2200,7 +2206,6 @@ subflow-specific windows.</t>
       &RFC2992;
       &RFC3022;
       &RFC3135;
-      &RFC3168;
       &RFC4086;
       &RFC4987;
       &RFC8126;
@@ -2209,8 +2214,8 @@ subflow-specific windows.</t>
       &RFC6356;
       &RFC6897;
       &RFC5961;
+      &RFC6182;
       &RFC6528;
-      &RFC6824;
       &RFC7413;
       &RFC7430;
       &RFC8041;
@@ -2602,11 +2607,11 @@ segments received on this subflow.</t>
     </section>
 
     <section title="Changes from RFC6184" anchor="app_changelog">
-      <t>This section lists the key technical changes between RFC6824 <xref target="RFC6824"/>, specifying MPTCP v0, and this document, which obsoletes RFC6824 and specifies MPTCP v1. Note that this specification is not backwards compatible with RFC6824.
+      <t>This section lists the key technical changes between RFC6824, specifying MPTCP v0, and this document, which obsoletes RFC6824 and specifies MPTCP v1. Note that this specification is not backwards compatible with RFC6824.
 
       <list style="symbols">
         <t>The document incorporates lessons learnt from the various implementations, deployments and experiments gathered in the documents "Use Cases and Operational Experience with Multipath TCP" <xref target="RFC8041"/> and the IETF Journal article "Multipath TCP Deployments" <xref target="deployments"/>.</t>
-        <t>Connection initiation, through the exchange of the MP_CAPABLE MPTCP option, is different from RFC6824. In order to permit servers to act statelessly, the SYN doesn't include A's key (it is still sent in the ACK).</t>
+        <t>Connection initiation, through the exchange of the MP_CAPABLE MPTCP option, is different from RFC6824. The SYN no longer includes the initiator's key, allowing the MP_CAPABLE option on the SYN to be shorter in length, and to avoid duplicating the sending of keying material.</t>
         <t>This requires MP_CAPABLE to also be sent reliably on the third ACK. If safe receipt of the third ACK cannot be inferred, the MP_CAPABLE option must be repeated on the first data packet.</t>
         <t>In the Flags field of MP_CAPABLE, C is now assigned to mean that the sender of this option will not accept additional MPTCP subflows to the source address and port. This is an efficiency improvement, for example where the sender is behind a strict NAT.</t>
         <t>In the Flags field of MP_CAPABLE, H now indicates the use of HMAC-SHA256 (rather than HMAC-SHA1).</t>
