@@ -43,7 +43,7 @@
 <?rfc subcompact="no" ?>
 <?rfc rfcedstyle="yes"?>
 
-<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-14" ipr="trust200902" obsoletes="6824">
+<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-15" ipr="trust200902" obsoletes="6824">
   <front>
     <title abbrev="Multipath TCP">TCP Extensions for Multipath Operation with Multiple Addresses</title>
 
@@ -449,7 +449,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
 
 <t>MPTCP falls back to ordinary TCP if MPTCP operation is not possible, for example, if one host is not MPTCP capable or if a middlebox alters the payload. This is discussed in <xref target="sec_fallback"/>.</t>
 
-<t>To address the threats identified in <xref target="RFC6181"/>, the following steps are taken: keys are sent in the clear in the MP_CAPABLE messages; MP_JOIN messages are secured with HMAC-SHA256 (<xref target="RFC2104"/>, <xref target="SHS"/>) using those keys; and standard TCP validity checks are made on the other messages (ensuring sequence numbers are in-window <xref target="RFC5961"/>). Residual threats to MPTCP v0 were identified in <xref target="RFC7430"/>, and those affecting the protocol (i.e. modification to ADD_ADDR) have been incorporated in this document. Further discussion of security can be found in <xref target="sec_security"/>.</t>
+<t>To address the threats identified in <xref target="RFC6181"/>, the following steps are taken: keys are sent in the clear in the MP_CAPABLE messages; MP_JOIN messages are secured with HMAC-SHA256 (<xref target="RFC2104"/>, <xref target="RFC6234"/>) using those keys; and standard TCP validity checks are made on the other messages (ensuring sequence numbers are in-window <xref target="RFC5961"/>). Residual threats to MPTCP v0 were identified in <xref target="RFC7430"/>, and those affecting the protocol (i.e. modification to ADD_ADDR) have been incorporated in this document. Further discussion of security can be found in <xref target="sec_security"/>.</t>
 </list></t>
 </section>
     </section>
@@ -586,7 +586,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
 
         A crypto algorithm MUST be specified.  If flag bits D through H are all 0, the MP_CAPABLE option MUST be treated as invalid and ignored (that is, it must be treated as a regular TCP handshake).</t>
 
-        <t>The selection of the authentication algorithm also impacts the algorithm used to generate the token and the Initial Data Sequence Number (IDSN). In this specification, with only the SHA-256 algorithm (bit "H") specified and selected, the token MUST be a truncated (most significant 32 bits) SHA-256 hash (<xref target="SHS"/>, <xref target="RFC6234"/>) of the key. A different, 64-bit truncation (the least significant 64 bits) of the SHA-256 hash of the key MUST be used as the IDSN. Note that the key MUST be hashed in network byte order. Also note that the "least significant" bits MUST be the rightmost bits of the SHA-256 digest, as per <xref target="SHS"/>. Future specifications of the use of the crypto bits may choose to specify different algorithms for token and IDSN generation.</t>
+        <t>The selection of the authentication algorithm also impacts the algorithm used to generate the token and the Initial Data Sequence Number (IDSN). In this specification, with only the SHA-256 algorithm (bit "H") specified and selected, the token MUST be a truncated (most significant 32 bits) SHA-256 hash (<xref target="RFC6234"/>) of the key. A different, 64-bit truncation (the least significant 64 bits) of the SHA-256 hash of the key MUST be used as the IDSN. Note that the key MUST be hashed in network byte order. Also note that the "least significant" bits MUST be the rightmost bits of the SHA-256 digest, as per <xref target="RFC6234"/>. Future specifications of the use of the crypto bits may choose to specify different algorithms for token and IDSN generation.</t>
 
         <t>Both the crypto and checksum bits negotiate capabilities in similar ways. For the Checksum Required bit (labeled "A"), if either host requires the use of checksums, checksums MUST be used. In other words, the only way for checksums not to be used is if both hosts in their SYNs set A=0. This decision is confirmed by the setting of the "A" bit in the third packet (the ACK) of the handshake. For example, if the initiator sets A=0 in the SYN, but the responder sets A=1 in the SYN/ACK, checksums MUST be used in both directions, and the initiator will set A=1 in the ACK. The decision whether to use checksums will be stored by an implementation in a per-connection binary state variable. If A=1 is received by a host that does not want to use checksums, it MUST fall back to regular TCP by ignoring the MP_CAPABLE option as if it was invalid.</t>
 
@@ -667,7 +667,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
         cryptographic hash of the receiver's key, as exchanged 
         in the initial MP_CAPABLE handshake (<xref target="sec_init"/>).  
         In this specification, the tokens presented in this 
-        option are generated by the SHA-256 (<xref target="SHS"/>, <xref target="RFC6234"/>) 
+        option are generated by the SHA-256 <xref target="RFC6234"/> 
         algorithm, truncated to the most significant 32 bits.  The token
         included in the MP_JOIN option is the token that the receiver
         of the packet uses to identify this connection; i.e., Host A 
@@ -742,8 +742,8 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
         stage allows both hosts to have first exchanged random data (in the 
         first two SYN packets) that is used as the "message". This
         specification defines that HMAC as defined in <xref target="RFC2104"/>
-        is used, along with the SHA-256 hash algorithm <xref target="SHS"/> 
-        (potentially implemented as in <xref target="RFC6234"/>), thus generating a 160-bit / 20-octet HMAC. Due to option space limitations, the HMAC included in 
+        is used, along with the SHA-256 hash algorithm <xref target="RFC6234"/>,
+        thus generating a 160-bit / 20-octet HMAC. Due to option space limitations, the HMAC included in 
         the SYN/ACK is truncated to the leftmost 64 bits, but this is 
         acceptable since random numbers are used; thus, an attacker 
         only has one chance to guess the HMAC correctly (if the HMAC is
@@ -1354,8 +1354,8 @@ allocating such IDs is implementation specific.</t>
         <t>The Truncated HMAC present in this Option is the rightmost 64 bits of an HMAC, negotiated and
         calculated in the same way as for MP_JOIN as described in <xref target="sec_join"/>. For this 
         specification of MPTCP, as there is only one hash algorithm option specified, this will be HMAC as 
-        defined in <xref target="RFC2104"/>, using the SHA-256 hash algorithm <xref target="SHS"/>, 
-        implemented as in <xref target="RFC6234"/>. In the same way as for MP_JOIN, the key for the HMAC 
+        defined in <xref target="RFC2104"/>, using the SHA-256 hash algorithm <xref target="RFC6234"/>.
+        In the same way as for MP_JOIN, the key for the HMAC
         algorithm, in the case of the message transmitted by Host A, will be Key-A followed by Key-B, and in 
         the case of Host B, Key-B followed by Key-A.  These are the keys that were exchanged in the original 
         MP_CAPABLE handshake. The message for the HMAC is the Address ID, IP Address, and Port which precede 
@@ -2188,10 +2188,11 @@ subflow-specific windows.</t>
 
     <references title="Normative References">
       &RFC0793;
+      &RFC2104;
       &RFC2119;
+      &RFC5961;
+      &RFC6234;
       &RFC8174;
-
-<reference anchor='SHS' target="http://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf"><front><title abbrev="Secure Hash Standard">Secure Hash Standard</title><author><organization>National Institute of Science and Technology</organization></author><date month="August" year="2015"/></front><seriesInfo name="Federal Information Processing Standard (FIPS)" value="180-4"/></reference>
 
     </references>
 
@@ -2200,7 +2201,6 @@ subflow-specific windows.</t>
       &RFC7323;
       &RFC1918;
       &RFC2018;
-      &RFC2104;
       &RFC5681;
       &RFC2979;
       &RFC2992;
@@ -2210,10 +2210,8 @@ subflow-specific windows.</t>
       &RFC4987;
       &RFC8126;
       &RFC6181;
-      &RFC6234;
       &RFC6356;
       &RFC6897;
-      &RFC5961;
       &RFC6182;
       &RFC6528;
       &RFC7413;
@@ -2612,7 +2610,7 @@ segments received on this subflow.</t>
       <list style="symbols">
         <t>The document incorporates lessons learnt from the various implementations, deployments and experiments gathered in the documents "Use Cases and Operational Experience with Multipath TCP" <xref target="RFC8041"/> and the IETF Journal article "Multipath TCP Deployments" <xref target="deployments"/>.</t>
         <t>Connection initiation, through the exchange of the MP_CAPABLE MPTCP option, is different from RFC6824. The SYN no longer includes the initiator's key, allowing the MP_CAPABLE option on the SYN to be shorter in length, and to avoid duplicating the sending of keying material.</t>
-        <t>This requires MP_CAPABLE to also be sent reliably on the third ACK. If safe receipt of the third ACK cannot be inferred, the MP_CAPABLE option must be repeated on the first data packet.</t>
+        <t>This also ensures reliable delivery of the key on the MP_CAPABLE option by allowing its transmission to be combined with data and thus using TCP's in-built reliability mechanism. If the initiator does not immediately have data to send, the MP_CAPABLE option with the keys will be repeated on the first data packet. If the other end is first to send, then the presence of the DSS option implicitly confirms the receipt of the MP_CAPABLE.</t>
         <t>In the Flags field of MP_CAPABLE, C is now assigned to mean that the sender of this option will not accept additional MPTCP subflows to the source address and port. This is an efficiency improvement, for example where the sender is behind a strict NAT.</t>
         <t>In the Flags field of MP_CAPABLE, H now indicates the use of HMAC-SHA256 (rather than HMAC-SHA1).</t>
         <t>Connection initiation also defines the procedure for version negotiation, for implementations that support both v0 (RFC6824) and v1 (this document).</t>
