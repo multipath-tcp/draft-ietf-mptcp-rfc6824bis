@@ -43,7 +43,7 @@
 <?rfc subcompact="no" ?>
 <?rfc rfcedstyle="yes"?>
 
-<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-16" ipr="trust200902" obsoletes="6824">
+<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-17" ipr="trust200902" obsoletes="6824">
   <front>
     <title abbrev="Multipath TCP">TCP Extensions for Multipath Operation with Multiple Addresses</title>
 
@@ -1881,7 +1881,7 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
         In order to achieve these goals, MPTCP includes a hash-based handshake algorithm documented in Sections <xref target="sec_init" format="counter"/> and <xref target="sec_join" format="counter"/>.</t>
 
       <t>The security of the MPTCP connection hangs on the use of keys that are shared once at the start of the first subflow, and are never sent again over the network (unless used in the fast close mechanism, <xref target="sec_fastclose"/>).  To ease demultiplexing while not giving away any cryptographic material, future subflows use a truncated cryptographic hash of this key as the connection identification "token".  The keys are concatenated and used as keys for creating Hash-based Message Authentication Codes (HMACs) used on subflow setup, in order to verify that the parties in the handshake are the same as in the original connection setup.  It also provides verification that the peer can receive traffic at this new address.  Replay attacks would still be possible when only keys are used; therefore, the handshakes use single-use random numbers (nonces) at both ends -- this ensures the HMAC will never be the same on two handshakes. Guidance on generating random numbers suitable for use as keys is given in <xref target="RFC4086"/> and discussed in <xref target="sec_init"/>. HMAC is also used to secure the ADD_ADDR option, due to the threats identified in <xref target="RFC7430"/>.</t>
-      <t>The use of crypto capability bits in the initial connection handshake to negotiate use of a particular algorithm allows the deployment of additional crypto mechanisms in the future.  Note that this negotiation would be susceptible to a bid-down attack by an on-path active attacker who could modify the crypto capability bits response from the receiver to use a less secure crypto mechanism. However, an on-path attacker would be able to man-in-the-middle the data anyway, so the risk here is minimal.
+      <t>The use of crypto capability bits in the initial connection handshake to negotiate use of a particular algorithm allows the deployment of additional crypto mechanisms in the future.  Note that this negotiation would be susceptible to a bid-down attack by an on-path active attacker who could modify the crypto capability bits response from the receiver to use a less secure crypto mechanism.
       The security mechanism presented in this document should therefore protect against all forms of flooding and hijacking attacks discussed in <xref target="RFC6181"/>.</t>
 
       <t>The version negotiation specified in <xref target="sec_init"/>, if differing MPTCP versions shared a common negotiation format, would allow an on-path attacker to apply a theoretical bid-down attack. Since the v1 and v0 protocols have a different handshake, such an attack would require the client to re-establish the connection using v0, and this being supported by the server. Note that an on-path attacker would have access to the raw data, negating any other TCP-level security mechanisms. 
