@@ -43,7 +43,7 @@
 <?rfc subcompact="no" ?>
 <?rfc rfcedstyle="yes"?>
 
-<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-17" ipr="trust200902" obsoletes="6824">
+<rfc category="std" docName="draft-ietf-mptcp-rfc6824bis-18" ipr="trust200902" obsoletes="6824">
   <front>
     <title abbrev="Multipath TCP">TCP Extensions for Multipath Operation with Multiple Addresses</title>
 
@@ -742,10 +742,12 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
         first two SYN packets) that is used as the "message". This
         specification defines that HMAC as defined in <xref target="RFC2104"/>
         is used, along with the SHA-256 hash algorithm <xref target="RFC6234"/>,
-        thus generating a 160-bit / 20-octet HMAC. Due to option space limitations, the HMAC included in 
+        and that the output is truncated to the leftmost 160 bits (20 octets).
+        Due to option space limitations, the HMAC included in 
         the SYN/ACK is truncated to the leftmost 64 bits, but this is 
         acceptable since random numbers are used; thus, an attacker 
-        only has one chance to guess the HMAC correctly (if the HMAC is
+        only has one chance to correctly guess the HMAC that matches the random
+        number previously sent by the peer (if the HMAC is
         incorrect, the TCP connection is closed, so a new MP_JOIN negotiation 
         with a new random number is required).</t>
         
@@ -791,7 +793,7 @@ to allow subflows to be created when either end is behind a NAT, MPTCP uses the 
    +---------------+---------------+-------+-----------------------+
    |                                                               |
    |                                                               |
-   |                   Sender's HMAC (160 bits)                    |
+   |              Sender's Truncated HMAC (160 bits)               |
    |                                                               |
    |                                                               |
    +---------------------------------------------------------------+
@@ -850,7 +852,7 @@ HMAC-B = HMAC(Key=(Key-B+Key-A), Msg=(R-B+R-A))
         TCP RST.</t>
 
         <t>If the HMACs are verified as correct, then both hosts have
-        authenticated each other as being the same peers as existed at
+        verified each other as being the same peers as existed at
         the start of the connection, and they have agreed of which 
         connection this subflow will become a part.</t>
 
@@ -924,10 +926,10 @@ HMAC-B = HMAC(Key=(Key-B+Key-A), Msg=(R-B+R-A))
 
         The flags 'a' and 'm' only have meaning if the corresponding 'A' or 'M' flags are set; otherwise, they will be ignored. The maximum length of this option, with all flags set, is 28 octets.</t>
 
-        <t>The 'F' flag indicates "Data FIN". If present, this means that this mapping covers the final data from the sender. This is the connection-level equivalent to the FIN flag in single-path TCP. A connection is not closed unless there has been a Data FIN exchange, or an implementation-specific, connection-level timeout. The purpose of the Data FIN and the interactions between this flag, the subflow-level FIN flag, and the data sequence mapping are described in <xref target="sec_close"/>.
+        <t>The 'F' flag indicates "Data FIN". If present, this means that this mapping covers the final data from the sender. This is the connection-level equivalent to the FIN flag in single-path TCP. A connection is not closed unless there has been a Data FIN exchange, a MP_FASTCLOSE (<xref target="sec_fastclose"/>) message, or an implementation-specific, connection-level send timeout. The purpose of the Data FIN and the interactions between this flag, the subflow-level FIN flag, and the data sequence mapping are described in <xref target="sec_close"/>.
         The remaining reserved bits MUST be set to zero by an implementation of this specification.</t>
 
-        <t>Note that the checksum is only present in this option if the use of MPTCP checksumming has been negotiated at the MP_CAPABLE handshake (see <xref target="sec_init"/>). The presence of the checksum can be inferred from the length of the option. If a checksum is present, but its use had not been negotiated in the MP_CAPABLE handshake, the checksum field MUST be ignored. If a checksum is not present when its use has been negotiated, the receiver MUST close the subflow with a RST as it is considered broken. This RST SHOULD be accompanied with a MP_TCPRST option (<xref target="sec_reset"/>) with the reason code for a "MPTCP specific error".</t>
+        <t>Note that the checksum is only present in this option if the use of MPTCP checksumming has been negotiated at the MP_CAPABLE handshake (see <xref target="sec_init"/>). The presence of the checksum can be inferred from the length of the option. If a checksum is present, but its use had not been negotiated in the MP_CAPABLE handshake, the receiver MUST close the subflow with a RST as it not behaving as negotiated. If a checksum is not present when its use has been negotiated, the receiver MUST close the subflow with a RST as it is considered broken. In both cases, this RST SHOULD be accompanied with a MP_TCPRST option (<xref target="sec_reset"/>) with the reason code for a "MPTCP specific error".</t>
         
         <section title="Data Sequence Mapping" anchor="sec_dsn">
 
@@ -942,7 +944,7 @@ after it has been declared; however, the same data sequence number can be mapped
 
         <t>The data sequence number is specified as an absolute value, whereas the subflow sequence numbering is relative (the SYN at the start of the subflow has relative subflow sequence number 0). This is to allow middleboxes to change the initial sequence number of a subflow, such as firewalls that undertake Initial Sequence Number (ISN) randomization.</t>
 
-        <t>The data sequence mapping also contains a checksum of the data that this mapping covers, if use of checksums has been negotiated at the MP_CAPABLE exchange. Checksums are used to detect if the payload has been adjusted in any way by a non-MPTCP-aware middlebox. If this checksum fails, it will trigger a failure of the subflow, or a fallback to regular TCP, as documented in <xref target="sec_fallback"/>, since MPTCP can no longer reliably know the subflow sequence space at the receiver to build data sequence mappings.</t>
+        <t>The data sequence mapping also contains a checksum of the data that this mapping covers, if use of checksums has been negotiated at the MP_CAPABLE exchange. Checksums are used to detect if the payload has been adjusted in any way by a non-MPTCP-aware middlebox. If this checksum fails, it will trigger a failure of the subflow, or a fallback to regular TCP, as documented in <xref target="sec_fallback"/>, since MPTCP can no longer reliably know the subflow sequence space at the receiver to build data sequence mappings. Without checksumming enabled, corrupt data may be delivered to the application if a middlebox alters segment boundaries, alters content, or does not deliver all segments covered by a data sequence mapping. It is therefore RECOMMENDED to use checksumming unless it is known the network path contains no such devices.</t>
 
         <t>The checksum algorithm used is the standard TCP checksum <xref target="RFC0793"/>, operating over the data covered by this mapping, along with a pseudo-header as shown in <xref target="fig_pseudo"/>.</t>
         
@@ -1397,7 +1399,7 @@ allocating such IDs is implementation specific.</t>
             ]]></artwork>
         </figure>
 
-        <t>Due to the proliferation of NATs, it is reasonably likely that one host may attempt to advertise private addresses <xref target="RFC1918"/>. It is not desirable to prohibit this, since there may be cases where both hosts have additional interfaces on the same private network, and a host MAY want to advertise such addresses. The MP_JOIN handshake to create a new subflow (<xref target="sec_join"/>) provides mechanisms to minimize security risks. The MP_JOIN message contains a 32-bit token that uniquely identifies the connection to the receiving host. If the token is unknown, the host will return with a RST. In the unlikely event that the token is valid at the receiving host, subflow setup will continue, but the HMAC exchange must occur for authentication. This will fail, and will provide sufficient protection against two unconnected hosts accidentally setting up a new subflow upon the signal of a private address. Further security considerations around the issue of ADD_ADDR messages that accidentally misdirect, or maliciously direct, new MP_JOIN attempts are discussed in <xref target="sec_security"/>.</t>
+        <t>Due to the proliferation of NATs, it is reasonably likely that one host may attempt to advertise private addresses <xref target="RFC1918"/>. It is not desirable to prohibit this, since there may be cases where both hosts have additional interfaces on the same private network, and a host MAY advertise such addresses. The MP_JOIN handshake to create a new subflow (<xref target="sec_join"/>) provides mechanisms to minimize security risks. The MP_JOIN message contains a 32-bit token that uniquely identifies the connection to the receiving host. If the token is unknown, the host will return with a RST. In the unlikely event that the token is valid at the receiving host, subflow setup will continue, but the HMAC exchange must occur for authentication. This will fail, and will provide sufficient protection against two unconnected hosts accidentally setting up a new subflow upon the signal of a private address. Further security considerations around the issue of ADD_ADDR messages that accidentally misdirect, or maliciously direct, new MP_JOIN attempts are discussed in <xref target="sec_security"/>.</t>
 
         <t>A host that receives an ADD_ADDR but finds a connection set up to that IP address and port number is unsuccessful SHOULD NOT perform further connection attempts to this address/port combination for this connection. A sender that wants to trigger a new incoming connection attempt on a previously advertised address/port combination can therefore refresh ADD_ADDR information by sending the option again.</t>
 
@@ -1878,9 +1880,8 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
 
         In order to achieve these goals, MPTCP includes a hash-based handshake algorithm documented in Sections <xref target="sec_init" format="counter"/> and <xref target="sec_join" format="counter"/>.</t>
 
-      <t>The security of the MPTCP connection hangs on the use of keys that are shared once at the start of the first subflow, and are never sent again over the network (unless used in the fast close mechanism, <xref target="sec_fastclose"/>).  To ease demultiplexing while not giving away any cryptographic material, future subflows use a truncated cryptographic hash of this key as the connection identification "token".  The keys are concatenated and used as keys for creating Hash-based Message Authentication Codes (HMACs) used on subflow setup, in order to verify that the parties in the handshake are the same as in the original connection setup.  It also provides verification that the peer can receive traffic at this new address.  Replay attacks would still be possible when only keys are used; therefore, the handshakes use single-use random numbers (nonces) at both ends -- this ensures the HMAC will never be the same on two handshakes. Guidance on generating random numbers suitable for use as keys is given in <xref target="RFC4086"/> and discussed in <xref target="sec_init"/>. HMAC is also used to secure the ADD_ADDR option, due to the threats identified in <xref target="RFC7430"/>.</t>
-      <t>The use of crypto capability bits in the initial connection handshake to negotiate use of a particular algorithm allows the deployment of additional crypto mechanisms in the future.  Note that this negotiation would be susceptible to a bid-down attack by an on-path active attacker who could modify the crypto capability bits response from the receiver to use a less secure crypto mechanism.
-      The security mechanism presented in this document should therefore protect against all forms of flooding and hijacking attacks discussed in <xref target="RFC6181"/>.</t>
+      <t>The security of the MPTCP connection hangs on the use of keys that are shared once at the start of the first subflow, and are never sent again over the network (unless used in the fast close mechanism, <xref target="sec_fastclose"/>).  To ease demultiplexing while not giving away any cryptographic material, future subflows use a truncated cryptographic hash of this key as the connection identification "token".  The keys are concatenated and used as keys for creating Hash-based Message Authentication Codes (HMACs) used on subflow setup, in order to verify that the parties in the handshake are the same as in the original connection setup.  It also provides verification that the peer can receive traffic at this new address.  Replay attacks would still be possible when only keys are used; therefore, the handshakes use single-use random numbers (nonces) at both ends -- this ensures the HMAC will never be the same on two handshakes. Guidance on generating random numbers suitable for use as keys is given in <xref target="RFC4086"/> and discussed in <xref target="sec_init"/>. The nonces are valid for the lifetime of the TCP connection attempt. HMAC is also used to secure the ADD_ADDR option, due to the threats identified in <xref target="RFC7430"/>.</t>
+      <t>The use of crypto capability bits in the initial connection handshake to negotiate use of a particular algorithm allows the deployment of additional crypto mechanisms in the future.  This negotiation would nevertheless be susceptible to a bid-down attack by an on-path active attacker who could modify the crypto capability bits in the response from the receiver to use a less secure crypto mechanism. The security mechanism presented in this document should therefore protect against all forms of flooding and hijacking attacks discussed in <xref target="RFC6181"/>.</t>
 
       <t>The version negotiation specified in <xref target="sec_init"/>, if differing MPTCP versions shared a common negotiation format, would allow an on-path attacker to apply a theoretical bid-down attack. Since the v1 and v0 protocols have a different handshake, such an attack would require the client to re-establish the connection using v0, and this being supported by the server. Note that an on-path attacker would have access to the raw data, negating any other TCP-level security mechanisms. 
       Also a change from RFC6824 has removed the subflow identifier from the MP_PRIO option (<xref target="sec_policy"/>), to remove the theoretical attack where a subflow could be placed in "backup" mode by an attacker.</t>
@@ -1893,7 +1894,7 @@ The receive SHOULD stop generating Data ACKs after it receives an infinite mappi
 
       <t>A small security risk could theoretically exist with key reuse, but in order to accomplish a replay attack, both the sender and receiver keys, and the sender and receiver random numbers, in the MP_JOIN handshake (<xref target="sec_join"/>) would have to match.</t>
 
-      <t>Whilst this specification defines a "medium" security solution, meeting the criteria specified at the start of this section and the threat analysis (<xref target="RFC6181"/>), since attacks only ever get worse, it is likely that a future Standards Track version of MPTCP would need to be able to support stronger security. There are several ways the security of MPTCP could potentially be improved; some of these would be compatible with MPTCP as defined in this document, whilst others may not be. For now, the best approach is to get experience with the current approach, establish what might work, and check that the threat analysis is still accurate.</t>
+      <t>Whilst this specification defines a "medium" security solution, meeting the criteria specified at the start of this section and the threat analysis (<xref target="RFC6181"/>), since attacks only ever get worse, it is likely that a future version of MPTCP would need to be able to support stronger security. There are several ways the security of MPTCP could potentially be improved; some of these would be compatible with MPTCP as defined in this document, whilst others may not be. For now, the best approach is to get experience with the current approach, establish what might work, and check that the threat analysis is still accurate.</t>
 
 <t>Possible ways of improving MPTCP security could include:<list style="symbols">
 <t>defining a new MPCTP cryptographic algorithm, as negotiated in MP_CAPABLE. A sub-case could be to include an additional deployment assumption, such as stateful servers, in order to allow a more powerful algorithm to be used.</t>
@@ -2015,7 +2016,7 @@ subflow-specific windows.</t>
       <!-- <t>The authors were originally supported by Trilogy (http://www.trilogy-project.org), a research project (ICT-216372) partially funded by the European Community under its Seventh Framework Program.</t>
       <t>Alan Ford was originally supported by Roke Manor Research and later Cisco Systems.</t> -->
       <t>The authors gratefully acknowledge significant input into this document from S&eacute;bastien Barr&eacute; and Andrew McDonald.</t>
-      <t>The authors also wish to acknowledge reviews and contributions from Iljitsch van Beijnum, Lars Eggert, Marcelo Bagnulo, Robert Hancock, Pasi Sarolahti, Toby Moncaster, Philip Eardley, Sergio Lembo, Lawrence Conroy, Yoshifumi Nishida, Bob Briscoe, Stein Gjessing, Andrew McGregor, Georg Hampel, Anumita Biswas, Wes Eddy, Alexey Melnikov, Francis Dupont, Adrian Farrel, Barry Leiba, Robert Sparks, Sean Turner, Stephen Farrell, Martin Stiemerling, Gregory Detal, Fabien Duchene, Xavier de Foy, Rahul Jadhav, and Klemens Schragel.</t>
+      <t>The authors also wish to acknowledge reviews and contributions from Iljitsch van Beijnum, Lars Eggert, Marcelo Bagnulo, Robert Hancock, Pasi Sarolahti, Toby Moncaster, Philip Eardley, Sergio Lembo, Lawrence Conroy, Yoshifumi Nishida, Bob Briscoe, Stein Gjessing, Andrew McGregor, Georg Hampel, Anumita Biswas, Wes Eddy, Alexey Melnikov, Francis Dupont, Adrian Farrel, Barry Leiba, Robert Sparks, Sean Turner, Stephen Farrell, Martin Stiemerling, Gregory Detal, Fabien Duchene, Xavier de Foy, Rahul Jadhav, Klemens Schragel, Mirja Kuehlewind, Sheng Jiang, Alissa Cooper, Ines Robles, Roman Danyliw, Adam Roach, Barry Leiba, Alexey Melnikov, Eric Vyncke, and Ben Kaduk.</t>
     </section>
 
     <section anchor="IANA" title="IANA Considerations">
@@ -2370,7 +2371,7 @@ then that path can also be used to transmit the new DATA_ACK).</t>
           establishment scenarios.</t>
 
           <t>Before an initiator can send data together with the SYN, it must request
-          a cookie to the listener, as shown in Figure <xref target="fig_tfocookie"/>.
+          a cookie to the listener, as shown in <xref target="fig_tfocookie"/>.
 	  This is done by simply combining the TFO and MPTCP options.</t>
 
           <figure align="center" anchor="fig_tfocookie" title="Cookie request - sequence number and length are annotated as Seq(Length) and used hereafter in the figures.">
@@ -2390,7 +2391,7 @@ initiator                                                       listener
 	  </figure>
 
           <t>Once this is done, the received cookie can be used for TFO, as shown
-          in Figure <xref target="fig_tfodata"/>. In this example, the initiator first
+          in <xref target="fig_tfodata"/>. In this example, the initiator first
 	  sends 20 bytes in the SYN. The listener immediately replies with 100 bytes
 	  following the SYN-ACK upon which the initiator replies with 20 more bytes.
 	  Note that the last segment in the figure
@@ -2420,7 +2421,7 @@ initiator                                                       listener
            ]]></artwork>
 	  </figure>
 
-          <t>In Figure <xref target="fig_tfofallback"/>, the listener does not support TFO.  The initiator detects
+          <t>In <xref target="fig_tfofallback"/>, the listener does not support TFO.  The initiator detects
           that no state is created in the listener (as no data is acked), and now
           sends the MP_CAPABLE in the third ack, in order for the listener to
           build its MPTCP context at then end of the establishment.  Now, the
@@ -2451,7 +2452,7 @@ initiator                                                       listener
 	  </figure>
 
           <t>It is also possible that the listener acknowledges only part of the TFO
-          data, as illustrated in Figure <xref target="fig_tfopartial"/>. The
+          data, as illustrated in <xref target="fig_tfopartial"/>. The
 	  initiator will simply retransmit the missing data together with a DSS-mapping.</t>
 
 	  <figure align="center" anchor="fig_tfopartial" title="Partial data acknowledgement">
@@ -2492,7 +2493,7 @@ maintained by MPTCP.</t>
 <t><list style="hanging">
 <t hangText="Local.Token (32 bits):"> This is the token chosen by the local host on
 this MPTCP connection. The token must be unique among all established
-MPTCP connections, generated from the local key.</t>
+MPTCP connections, and is generated from the local key.</t>
 <t hangText="Local.Key (64 bits):"> This is the key sent by the local host on this
 MPTCP connection.</t>
 <t hangText="Remote.Token (32 bits):"> This is the token chosen by the remote host on
